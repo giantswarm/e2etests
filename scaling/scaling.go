@@ -36,14 +36,14 @@ func New(config Config) (*Scaling, error) {
 	return s, nil
 }
 
-func (s *Scaling) Test(ctx context.Context, p provider.Interface) error {
+func (s *Scaling) Test(ctx context.Context) error {
 	var err error
 
 	var numMasters int
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "looking for the number of masters")
 
-		numMasters, err = p.NumMasters()
+		numMasters, err = s.provider.NumMasters()
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -55,7 +55,7 @@ func (s *Scaling) Test(ctx context.Context, p provider.Interface) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "looking for the number of workers")
 
-		numWorkers, err := p.NumWorkers()
+		numWorkers, err := s.provider.NumWorkers()
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -66,7 +66,7 @@ func (s *Scaling) Test(ctx context.Context, p provider.Interface) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "scaling up one worker")
 
-		err = p.AddWorker()
+		err = s.provider.AddWorker()
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -77,7 +77,7 @@ func (s *Scaling) Test(ctx context.Context, p provider.Interface) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "waiting for scaling up to be complete")
 
-		err = p.WaitForNodesUp(numMasters + numWorkers + 1)
+		err = s.provider.WaitForNodesUp(numMasters + numWorkers + 1)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -88,7 +88,7 @@ func (s *Scaling) Test(ctx context.Context, p provider.Interface) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "scaling down one worker")
 
-		err = p.RemoveWorker()
+		err = s.provider.RemoveWorker()
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -99,7 +99,7 @@ func (s *Scaling) Test(ctx context.Context, p provider.Interface) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "waiting for scaling down to be complete")
 
-		err = p.WaitForNodesUp(numMasters + numWorkers)
+		err = s.provider.WaitForNodesUp(numMasters + numWorkers)
 		if err != nil {
 			return microerror.Mask(err)
 		}
