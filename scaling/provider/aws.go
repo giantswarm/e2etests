@@ -6,7 +6,7 @@ import (
 	"github.com/giantswarm/micrologger"
 )
 
-type Config struct {
+type AWSConfig struct {
 	GuestFramework *framework.Guest
 	HostFramework  *framework.Host
 	Logger         micrologger.Logger
@@ -22,7 +22,7 @@ type AWS struct {
 	clusterID string
 }
 
-func New(config Config) (*AWS, error) {
+func NewAWS(config AWSConfig) (*AWS, error) {
 	if config.GuestFramework == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.GuestFramework must not be empty", config)
 	}
