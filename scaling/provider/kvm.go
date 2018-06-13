@@ -122,7 +122,7 @@ func (a *KVM) RemoveWorker() error {
 	return nil
 }
 
-func (a *KVM) WaitForNodesUp(num int) error {
+func (a *KVM) WaitForNodes(num int) error {
 	err := a.guestFramework.WaitForNodesUp(num)
 	if err != nil {
 		return microerror.Mask(err)

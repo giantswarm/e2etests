@@ -122,7 +122,7 @@ func (a *AWS) RemoveWorker() error {
 	return nil
 }
 
-func (a *AWS) WaitForNodesUp(num int) error {
+func (a *AWS) WaitForNodes(num int) error {
 	err := a.guestFramework.WaitForNodesUp(num)
 	if err != nil {
 		return microerror.Mask(err)
