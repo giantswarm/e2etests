@@ -27,7 +27,7 @@
 
 
 [[constraint]]
-  branch = "expose"
+  branch = "master"
   name = "github.com/giantswarm/e2e-harness"
 
 [[constraint]]
