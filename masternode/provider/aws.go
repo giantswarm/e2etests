@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -12,6 +13,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -67,6 +69,8 @@ func NewAWS(config AWSConfig) (*AWS, error) {
 }
 
 func (a *AWS) InstallTestApp() error {
+	var err error
+
 	var apprClient *apprclient.Client
 	{
 		c := apprclient.Config{
@@ -86,7 +90,7 @@ func (a *AWS) InstallTestApp() error {
 	var helmClient *helmclient.Client
 	{
 		c := helmclient.Config{
-			Logger:    newLogger,
+			Logger:    a.logger,
 			K8sClient: a.guestFramework.K8sClient(),
 
 			RestConfig: a.guestFramework.RestConfig(),
@@ -105,7 +109,7 @@ func (a *AWS) InstallTestApp() error {
 
 	// Install the e2e app chart in the guest cluster.
 	{
-		newLogger.Log("level", "debug", "message", "installing e2e-app for testing")
+		a.logger.Log("level", "debug", "message", "installing e2e-app for testing")
 
 		tarballPath, err := apprClient.PullChartTarball(ChartName, ChartChannel)
 		if err != nil {
@@ -167,15 +171,15 @@ func (a *AWS) RebootMaster() error {
 func (a *AWS) ReplaceMaster() error {
 	customObject, err := a.hostFramework.G8sClient().ProviderV1alpha1().AWSConfigs("default").Get(a.clusterID, metav1.GetOptions{})
 	if err != nil {
-		return microerror.mask(err)
+		return microerror.Mask(err)
 	}
 
 	// Change instance type to trigger replacement of existing master node.
 	customObject.Spec.AWS.Masters[0].InstanceType = EC2InstanceType
 
-	_, err := a.hostFramework.G8sClient().ProviderV1alpha1().AWSConfigs("default").Update(customObject)
+	_, err = a.hostFramework.G8sClient().ProviderV1alpha1().AWSConfigs("default").Update(customObject)
 	if err != nil {
-		return microerror.mask(err)
+		return microerror.Mask(err)
 	}
 
 	return nil
@@ -189,18 +193,18 @@ func (a *AWS) WaitForGuestReady() error {
 
 	// Wait for e2e app to be up.
 	for {
-		newLogger.Log("level", "debug", "message", "waiting for 2 pods of the e2e-app to be up")
+		a.logger.Log("level", "debug", "message", "waiting for 2 pods of the e2e-app to be up")
 
 		o := metav1.ListOptions{
 			LabelSelector: "app=e2e-app",
 		}
-		l, err := g.K8sClient().CoreV1().Pods(ChartNamespace).List(o)
+		l, err := a.guestFramework.K8sClient().CoreV1().Pods(ChartNamespace).List(o)
 		if err != nil {
-			t.Fatalf("expected %#v got %#v", nil, err)
+			return microerror.Mask(err)
 		}
 
 		if len(l.Items) != 2 {
-			newLogger.Log("level", "debug", "message", fmt.Sprintf("found %d pods", len(l.Items)))
+			a.logger.Log("level", "debug", "message", fmt.Sprintf("found %d pods", len(l.Items)))
 			time.Sleep(3 * time.Second)
 			continue
 		}
