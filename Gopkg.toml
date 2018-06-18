@@ -25,9 +25,21 @@
 #   unused-packages = true
 
 
+
+required = [
+  "github.com/docker/distribution/reference",
+    "k8s.io/apiserver/pkg/endpoints/request"
+]
+
+
+
 [[constraint]]
   name = "github.com/aws/aws-sdk-go"
   version = "1.14.7"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/docker/distribution"
 
 [[constraint]]
   branch = "master"
@@ -48,6 +60,10 @@
 [[constraint]]
   branch = "master"
   name = "github.com/giantswarm/micrologger"
+
+[[constraint]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.10.4"
 
 
 
