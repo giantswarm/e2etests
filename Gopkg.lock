@@ -2,6 +2,28 @@
 
 
 [[projects]]
+  name = "github.com/Azure/azure-sdk-for-go"
+  packages = [
+    "services/compute/mgmt/2018-04-01/compute",
+    "version"
+  ]
+  revision = "fad8443a79b0e755c18c3bec29a8d2bedab0b421"
+  version = "v15.3.0"
+
+[[projects]]
+  name = "github.com/Azure/go-autorest"
+  packages = [
+    "autorest",
+    "autorest/adal",
+    "autorest/azure",
+    "autorest/date",
+    "autorest/to",
+    "autorest/validation"
+  ]
+  revision = "f04d503958a4fe854c1b41667c73f8813c9dd9c3"
+  version = "v10.11.2"
+
+[[projects]]
   name = "github.com/BurntSushi/toml"
   packages = ["."]
   revision = "b26d9c308763d68093482582cea63d69be07a0f0"
@@ -72,6 +94,12 @@
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   branch = "master"
@@ -169,10 +197,13 @@
   revision = "fae6052878d9c2e8e187f04f4132ac581984d77c"
 
 [[projects]]
-  branch = "master"
+  branch = "azure"
   name = "github.com/giantswarm/e2eclients"
-  packages = ["aws"]
-  revision = "cb45cf36a000b2212427dac1697740dd316d2f0b"
+  packages = [
+    "aws",
+    "azure"
+  ]
+  revision = "99fd0854de7daad70efb97ea1be8f69a664a7a19"
 
 [[projects]]
   branch = "master"
@@ -1067,6 +1098,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8491e21989ed7ffcb3c0c271879eedaf4e3e7bf73411b9a950b8dc0b756ad162"
+  inputs-digest = "f49312b5a2d2df5fc60552a94c1c2aa08d0c6b95695a108b7b15f375aa6b2c54"
   solver-name = "gps-cdcl"
   solver-version = 1
