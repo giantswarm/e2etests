@@ -8,7 +8,8 @@ type Interface interface {
 	// Test executes the cluster state test using the configured provider
 	// implementation. The provider implementation has to be aware of the guest
 	// cluster it has to act against. The test processes the following steps to
-	// ensure scaling works.
+	// ensure the cluster state persists when rebooting and replacing the
+	// master node.
 	//
 	//  - Install test app.
 	//  - Wait for cluster to be ready.
