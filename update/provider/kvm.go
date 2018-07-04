@@ -6,7 +6,6 @@ import (
 	"github.com/giantswarm/e2e-harness/pkg/framework"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -15,7 +14,8 @@ type KVMConfig struct {
 	HostFramework  *framework.Host
 	Logger         micrologger.Logger
 
-	ClusterID string
+	ClusterID   string
+	GithubToken string
 }
 
 type KVM struct {
@@ -23,7 +23,8 @@ type KVM struct {
 	hostFramework  *framework.Host
 	logger         micrologger.Logger
 
-	clusterID string
+	clusterID   string
+	githubToken string
 }
 
 func NewKVM(config KVMConfig) (*KVM, error) {
@@ -40,29 +41,66 @@ func NewKVM(config KVMConfig) (*KVM, error) {
 	if config.ClusterID == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ClusterID must not be empty", config)
 	}
+	if config.GithubToken == "" {
+		return nil, microerror.Maskf(invalidConfigError, "%T.GithubToken must not be empty", config)
+	}
 
 	k := &KVM{
 		guestFramework: config.GuestFramework,
 		hostFramework:  config.HostFramework,
 		logger:         config.Logger,
 
-		clusterID: config.ClusterID,
+		clusterID:   config.ClusterID,
+		githubToken: config.GithubToken,
 	}
 
 	return k, nil
 }
 
-func (k *KVM) AddWorker() error {
-	customObject, err := k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
+func (a *KVM) CurrentVersion() (string, error) {
+	p := &framework.VBVParams{
+		Component: "kvm-operator",
+		Provider:  "kvm",
+		Token:     a.githubToken,
+		VType:     "current",
+	}
+	v, err := framework.GetVersionBundleVersion(p)
 	if err != nil {
-		return microerror.Mask(err)
+		return "", microerror.Mask(err)
 	}
 
+	if v == "" {
+		return "", microerror.Mask(versionNotFoundError)
+	}
+
+	return v, nil
+}
+
+func (a *KVM) NextVersion() (string, error) {
+	p := &framework.VBVParams{
+		Component: "kvm-operator",
+		Provider:  "kvm",
+		Token:     a.githubToken,
+		VType:     "wip",
+	}
+	v, err := framework.GetVersionBundleVersion(p)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	if v == "" {
+		return "", microerror.Mask(versionNotFoundError)
+	}
+
+	return v, nil
+}
+
+func (k *KVM) UpdateVersion(nextVersion string) error {
 	patches := []Patch{
 		{
-			Op:    "add",
-			Path:  "/spec/kvm/workers/-",
-			Value: customObject.Spec.KVM.Workers[0],
+			Op:    "replace",
+			Path:  "/spec/versionBundle/version",
+			Value: nextVersion,
 		},
 	}
 
@@ -79,54 +117,7 @@ func (k *KVM) AddWorker() error {
 	return nil
 }
 
-func (k *KVM) NumMasters() (int, error) {
-	customObject, err := k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
-	if err != nil {
-		return 0, microerror.Mask(err)
-	}
-
-	num := len(customObject.Spec.KVM.Masters)
-
-	return num, nil
-}
-
-func (k *KVM) NumWorkers() (int, error) {
-	customObject, err := k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
-	if err != nil {
-		return 0, microerror.Mask(err)
-	}
-
-	num := len(customObject.Spec.KVM.Workers)
-
-	return num, nil
-}
-
-func (k *KVM) RemoveWorker() error {
-	patches := []Patch{
-		{
-			Op:   "remove",
-			Path: "/spec/kvm/workers/1",
-		},
-	}
-
-	b, err := json.Marshal(patches)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	_, err = k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Patch(k.clusterID, types.JSONPatchType, b)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	return nil
-}
-
-func (k *KVM) WaitForNodes(num int) error {
-	err := k.guestFramework.WaitForNodesUp(num)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
+// TODO
+func (k *KVM) WaitForUpdate(nextVersion string) error {
 	return nil
 }
