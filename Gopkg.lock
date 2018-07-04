@@ -197,13 +197,13 @@
   revision = "fae6052878d9c2e8e187f04f4132ac581984d77c"
 
 [[projects]]
-  branch = "vmss-client"
+  branch = "master"
   name = "github.com/giantswarm/e2eclients"
   packages = [
     "aws",
     "azure"
   ]
-  revision = "99b65214f181806863a407ffc1098f8d784067e1"
+  revision = "9cddbc7af0f20a82d0ec1ad5705b045e0e032188"
 
 [[projects]]
   branch = "master"
@@ -1098,6 +1098,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d28fd29ce2923e55ba8a3f719e0ab8895863dc3054a418527303bc8d2d99f702"
+  inputs-digest = "f6e8e3a1073fffe9f096240c5dca623389db75ecdee6602671be40aa30dbcb24"
   solver-name = "gps-cdcl"
   solver-version = 1
