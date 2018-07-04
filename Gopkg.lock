@@ -188,13 +188,13 @@
   revision = "32a7099fbb5b6af28013d7cce3918a6aa3fb2e8d"
 
 [[projects]]
-  branch = "master"
+  branch = "long-wait-api-down"
   name = "github.com/giantswarm/e2e-harness"
   packages = [
     "pkg/framework",
     "pkg/harness"
   ]
-  revision = "fae6052878d9c2e8e187f04f4132ac581984d77c"
+  revision = "7b436607323143501564f530054dceb9c540f237"
 
 [[projects]]
   branch = "master"
@@ -1098,6 +1098,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f6e8e3a1073fffe9f096240c5dca623389db75ecdee6602671be40aa30dbcb24"
+  inputs-digest = "ccaf55af2531024045d041356ae8bce395567c7bf763067996fd710c14c130ea"
   solver-name = "gps-cdcl"
   solver-version = 1
