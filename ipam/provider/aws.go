@@ -98,7 +98,7 @@ func NewAWS(config AWSConfig) (*AWS, error) {
 	return a, nil
 }
 
-func (aws *AWS) RequestGuestClusterCreation(clusterName string) error {
+func (aws *AWS) CreateCluster(clusterName string) error {
 	if clusterName == "" {
 		return microerror.Maskf(invalidConfigError, "clusterName must not be empty")
 	}
@@ -159,7 +159,7 @@ func (aws *AWS) RequestGuestClusterCreation(clusterName string) error {
 	return nil
 }
 
-func (aws *AWS) RequestGuestClusterDeletion(clusterName string) {
+func (aws *AWS) DeleteCluster(clusterName string) {
 	deploymentName := awsConfigDeploymentName(clusterName)
 	// NOTE we ignore errors here because we cannot get really useful error
 	// handling done. This here should anyway only be a quick fix until we use
