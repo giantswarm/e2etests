@@ -9,12 +9,12 @@ type Interface interface {
 	// correctly.
 	//
 	//  - Create guest clusters #1, #2, #3.
-	//	- Wait for guest clusters to be ready.
-	//	- Verify that clusters have distinct subnets.
-	//  - Terminate guest cluster #2 and create guest cluster #4.
+	//  - Wait for guest clusters to be ready.
+	//  - Verify that clusters have distinct subnets.
+	//  - Terminate guest cluster #2 and immediately create guest cluster #4.
 	//  - Wait for guest clusters to be deleted and created.  - Verify that
-	//	  clusters have distinct subnets and created cluster #4 did not receive
-	//	  same subnet that deleted cluster #2 had.
+	//    clusters have distinct subnets and created cluster #4 did not receive
+	//    same subnet that deleted cluster #2 had.
 	//  - Delete guest clusters.
 	//
 	Test(ctx context.Context) error
