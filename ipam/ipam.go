@@ -10,21 +10,16 @@ import (
 )
 
 type Config struct {
-	GuestFramework *framework.Guest
-	Logger         micrologger.Logger
-	Provider       provider.Interface
+	Logger   micrologger.Logger
+	Provider provider.Interface
 }
 
 type IPAM struct {
-	guestFramework *framework.Guest
-	logger         micrologger.Logger
-	provider       provider.Interface
+	logger   micrologger.Logger
+	provider provider.Interface
 }
 
 func New(config Config) (*IPAM, error) {
-	if config.GuestFramework == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.GuestFramework must not be empty", config)
-	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
@@ -33,9 +28,8 @@ func New(config Config) (*IPAM, error) {
 	}
 
 	s := &IPAM{
-		guestFramework: config.GuestFramework,
-		logger:         config.Logger,
-		provider:       config.Provider,
+		logger:   config.Logger,
+		provider: config.Provider,
 	}
 
 	return s, nil
