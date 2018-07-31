@@ -1,6 +1,8 @@
 package k8sportforward
 
 import (
+	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -11,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
@@ -57,40 +60,14 @@ func (f *Forwarder) ForwardPort(config TunnelConfig) (*Tunnel, error) {
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
+
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", u)
 
-	local, err := getAvailablePort()
+	tunnel, err := newTunnel(dialer, config)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
-
-	tunnel := &Tunnel{
-		TunnelConfig: config,
-		Local:        local,
-
-		stopChan: make(chan struct{}, 1),
-	}
-
-	out := ioutil.Discard
-	ports := []string{fmt.Sprintf("%d:%d", tunnel.Local, tunnel.Remote)}
-	readyChan := make(chan struct{}, 1)
-
-	pf, err := portforward.New(dialer, ports, tunnel.stopChan, readyChan, out, out)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	errChan := make(chan error)
-	go func() {
-		errChan <- pf.ForwardPorts()
-	}()
-
-	select {
-	case err = <-errChan:
-		return nil, microerror.Mask(err)
-	case <-pf.Ready:
-		return tunnel, nil
-	}
+	return tunnel, err
 }
 
 type TunnelConfig struct {
@@ -111,6 +88,50 @@ type Tunnel struct {
 func (t *Tunnel) Close() error {
 	close(t.stopChan)
 	return nil
+}
+
+func newTunnel(dialer httpstream.Dialer, config TunnelConfig) (*Tunnel, error) {
+	local, err := getAvailablePort()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	tunnel := &Tunnel{
+		TunnelConfig: config,
+		Local:        local,
+
+		stopChan: make(chan struct{}, 1),
+	}
+
+	out := ioutil.Discard
+	ports := []string{fmt.Sprintf("%d:%d", tunnel.Local, tunnel.Remote)}
+	readyChan := make(chan struct{}, 1)
+
+	// next line will prevent `ERROR: logging before flag.Parse:` errors from
+	// glog (used by k8s' apimachinery package) see
+	// https://github.com/kubernetes/kubernetes/issues/17162#issuecomment-225596212
+	flag.CommandLine.Parse([]string{})
+	pf, err := portforward.New(dialer, ports, tunnel.stopChan, readyChan, out, out)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	errChan := make(chan error)
+	go func() {
+		select {
+		case errChan <- pf.ForwardPorts():
+		case <-ctx.Done():
+		}
+	}()
+
+	select {
+	case err = <-errChan:
+		return nil, microerror.Mask(err)
+	case <-pf.Ready:
+		return tunnel, nil
+	}
 }
 
 func getAvailablePort() (int, error) {
