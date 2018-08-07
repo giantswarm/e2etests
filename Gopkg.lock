@@ -191,10 +191,10 @@
   revision = "30620a9d0ecdb133f82257768ece76ebc1b6f8ef"
 
 [[projects]]
-  branch = "permanent"
+  branch = "master"
   name = "github.com/giantswarm/backoff"
   packages = ["."]
-  revision = "a05449f46f3b2c92912dec42a81af250fcee4795"
+  revision = "15d3a36d54b75f81d1de1efd935d0cea11f946cf"
 
 [[projects]]
   branch = "master"
@@ -203,7 +203,7 @@
     "pkg/framework",
     "pkg/harness"
   ]
-  revision = "e8a9f4fda29981d2b4f054a27211c30340a134dc"
+  revision = "aa24cb69cdf338a783fd0fb7af6d93442f149956"
 
 [[projects]]
   branch = "master"
@@ -541,7 +541,7 @@
     "unix",
     "windows"
   ]
-  revision = "0718ef2ef256118d53a01598f179001ec2af7626"
+  revision = "90887a55d6e495d6cf02a7f2400e404c16caab1c"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -1109,6 +1109,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7f45c93406fc8e0774c28640c3c460a65cae1fcadc2d71c7d4c3f7cb623f89a3"
+  inputs-digest = "1b3839cd6143071b2d69707b59a5a4846532c9d2c4ae7960958f19e77866b608"
   solver-name = "gps-cdcl"
   solver-version = 1

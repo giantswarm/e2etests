@@ -45,8 +45,8 @@ required = [
   branch = "master"
   name = "github.com/giantswarm/apprclient"
 
-[[override]]
-  branch = "permanent"
+[[constraint]]
+  branch = "master"
   name = "github.com/giantswarm/backoff"
 
 [[constraint]]
