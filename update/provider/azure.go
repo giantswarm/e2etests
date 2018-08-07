@@ -11,27 +11,22 @@ import (
 )
 
 type AzureConfig struct {
-	GuestFramework *framework.Guest
-	HostFramework  *framework.Host
-	Logger         micrologger.Logger
+	HostFramework *framework.Host
+	Logger        micrologger.Logger
 
 	ClusterID   string
 	GithubToken string
 }
 
 type Azure struct {
-	guestFramework *framework.Guest
-	hostFramework  *framework.Host
-	logger         micrologger.Logger
+	hostFramework *framework.Host
+	logger        micrologger.Logger
 
 	clusterID   string
 	githubToken string
 }
 
 func NewAzure(config AzureConfig) (*Azure, error) {
-	if config.GuestFramework == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.GuestFramework must not be empty", config)
-	}
 	if config.HostFramework == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.HostFramework must not be empty", config)
 	}
@@ -47,9 +42,8 @@ func NewAzure(config AzureConfig) (*Azure, error) {
 	}
 
 	a := &Azure{
-		guestFramework: config.GuestFramework,
-		hostFramework:  config.HostFramework,
-		logger:         config.Logger,
+		hostFramework: config.HostFramework,
+		logger:        config.Logger,
 
 		clusterID:   config.ClusterID,
 		githubToken: config.GithubToken,
