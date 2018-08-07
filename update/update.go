@@ -3,7 +3,9 @@ package update
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 
@@ -85,8 +87,24 @@ func (u *Update) Test(ctx context.Context) error {
 	{
 		u.logger.LogCtx(ctx, "level", "debug", "message", "updating the guest cluster with the new version bundle version")
 
-		err := u.provider.WaitForUpdate(nextVersion)
-		if err != nil {
+		o := func() error {
+			isUpdated, err := u.provider.IsUpdated()
+			if err != nil {
+				return microerror.Mask(err)
+			}
+			if isUpdated {
+				return backoff.Permanent(alreadyUpdatedError)
+			}
+
+			return nil
+		}
+		b := backoff.NewConstant(60*time.Minute, 5*time.Minute)
+		n := backoff.NewNotifier(u.logger, ctx)
+
+		err := backoff.RetryNotify(o, b, n)
+		if IsAlreadyUpdated(err) {
+			// fall through
+		} else if err != nil {
 			return microerror.Mask(err)
 		}
 

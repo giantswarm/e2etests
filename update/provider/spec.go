@@ -2,9 +2,9 @@ package provider
 
 type Interface interface {
 	CurrentVersion() (string, error)
+	IsUpdated() (bool, error)
 	NextVersion() (string, error)
 	UpdateVersion(nextVersion string) error
-	WaitForUpdate(nextVersion string) error
 }
 
 type Patch struct {

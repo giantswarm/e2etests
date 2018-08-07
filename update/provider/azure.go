@@ -6,6 +6,7 @@ import (
 	"github.com/giantswarm/e2e-harness/pkg/framework"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -76,6 +77,15 @@ func (a *Azure) CurrentVersion() (string, error) {
 	return v, nil
 }
 
+func (a *Azure) IsUpdated() (bool, error) {
+	customObject, err := a.hostFramework.G8sClient().ProviderV1alpha1().AzureConfigs("default").Get(a.clusterID, metav1.GetOptions{})
+	if err != nil {
+		return false, microerror.Mask(err)
+	}
+
+	return customObject.Status.Cluster.HasUpdatedCondition(), nil
+}
+
 func (a *Azure) NextVersion() (string, error) {
 	p := &framework.VBVParams{
 		Component: "azure-operator",
@@ -114,10 +124,5 @@ func (a *Azure) UpdateVersion(nextVersion string) error {
 		return microerror.Mask(err)
 	}
 
-	return nil
-}
-
-// TODO
-func (a *Azure) WaitForUpdate(nextVersion string) error {
 	return nil
 }
