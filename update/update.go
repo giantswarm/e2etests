@@ -3,7 +3,9 @@ package update
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 
@@ -13,11 +15,15 @@ import (
 type Config struct {
 	Logger   micrologger.Logger
 	Provider provider.Interface
+
+	MaxWait time.Duration
 }
 
 type Update struct {
 	logger   micrologger.Logger
 	provider provider.Interface
+
+	maxWait time.Duration
 }
 
 func New(config Config) (*Update, error) {
@@ -28,9 +34,15 @@ func New(config Config) (*Update, error) {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Provider must not be empty", config)
 	}
 
+	if config.MaxWait == 0 {
+		config.MaxWait = 60 * time.Minute
+	}
+
 	u := &Update{
 		logger:   config.Logger,
 		provider: config.Provider,
+
+		maxWait: config.MaxWait,
 	}
 
 	return u, nil
@@ -38,6 +50,33 @@ func New(config Config) (*Update, error) {
 
 func (u *Update) Test(ctx context.Context) error {
 	var err error
+
+	{
+		u.logger.LogCtx(ctx, "level", "debug", "message", "waiting for the guest cluster to be created")
+
+		o := func() error {
+			s, err := u.provider.CurrentStatus()
+			if err != nil {
+				return microerror.Mask(err)
+			}
+			if s.HasCreatedCondition() {
+				return backoff.Permanent(microerror.Mask(hasDesiredStatusError))
+			}
+
+			return microerror.Mask(missesDesiredStatusError)
+		}
+		b := backoff.NewConstant(10*time.Minute, 2*time.Minute)
+		n := backoff.NewNotifier(u.logger, ctx)
+
+		err := backoff.RetryNotify(o, b, n)
+		if IsHasDesiredStatus(err) {
+			// fall through
+		} else if err != nil {
+			return microerror.Mask(err)
+		}
+
+		u.logger.LogCtx(ctx, "level", "debug", "message", "waited for the guest cluster to be created")
+	}
 
 	var currentVersion string
 	{
@@ -83,14 +122,57 @@ func (u *Update) Test(ctx context.Context) error {
 	}
 
 	{
-		u.logger.LogCtx(ctx, "level", "debug", "message", "updating the guest cluster with the new version bundle version")
+		u.logger.LogCtx(ctx, "level", "debug", "message", "waiting for the guest cluster to be updating")
 
-		err := u.provider.WaitForUpdate(nextVersion)
-		if err != nil {
+		o := func() error {
+			s, err := u.provider.CurrentStatus()
+			if err != nil {
+				return microerror.Mask(err)
+			}
+			if s.HasUpdatingCondition() {
+				return backoff.Permanent(microerror.Mask(hasDesiredStatusError))
+			}
+
+			return microerror.Mask(missesDesiredStatusError)
+		}
+		b := backoff.NewConstant(10*time.Minute, 2*time.Minute)
+		n := backoff.NewNotifier(u.logger, ctx)
+
+		err := backoff.RetryNotify(o, b, n)
+		if IsHasDesiredStatus(err) {
+			// fall through
+		} else if err != nil {
 			return microerror.Mask(err)
 		}
 
-		u.logger.LogCtx(ctx, "level", "debug", "message", "updated the guest cluster with the new version bundle version")
+		u.logger.LogCtx(ctx, "level", "debug", "message", "waited for the guest cluster to be updating")
+	}
+
+	{
+		u.logger.LogCtx(ctx, "level", "debug", "message", "waiting for the guest cluster to be updated")
+
+		o := func() error {
+			s, err := u.provider.CurrentStatus()
+			if err != nil {
+				return microerror.Mask(err)
+			}
+			if s.HasUpdatedCondition() {
+				return backoff.Permanent(microerror.Mask(hasDesiredStatusError))
+			}
+
+			return microerror.Mask(missesDesiredStatusError)
+		}
+		b := backoff.NewConstant(u.maxWait, 5*time.Minute)
+		n := backoff.NewNotifier(u.logger, ctx)
+
+		err := backoff.RetryNotify(o, b, n)
+		if IsHasDesiredStatus(err) {
+			// fall through
+		} else if err != nil {
+			return microerror.Mask(err)
+		}
+
+		u.logger.LogCtx(ctx, "level", "debug", "message", "waited for the guest cluster to be updated")
 	}
 
 	return nil
