@@ -250,7 +250,7 @@
   revision = "7cc3f26ba2196a4ddbbb3fb995f28c2dca678364"
 
 [[projects]]
-  branch = "bump"
+  branch = "master"
   digest = "1:b38f5b8b06e943c8cbdd64afae8c11d54780de49b55711bb3a5a57261ee9434c"
   name = "github.com/giantswarm/e2eclients"
   packages = [
@@ -258,7 +258,7 @@
     "azure",
   ]
   pruneopts = "UT"
-  revision = "e244a9f258654d05da903e18811f3615ebadb37e"
+  revision = "425207429a641c7e43d409680d54ae78f049e04e"
 
 [[projects]]
   branch = "master"
