@@ -1,36 +1,30 @@
 package provider
 
 import (
-	"encoding/json"
-
+	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/e2e-harness/pkg/framework"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type KVMConfig struct {
-	GuestFramework *framework.Guest
-	HostFramework  *framework.Host
-	Logger         micrologger.Logger
+	HostFramework *framework.Host
+	Logger        micrologger.Logger
 
 	ClusterID   string
 	GithubToken string
 }
 
 type KVM struct {
-	guestFramework *framework.Guest
-	hostFramework  *framework.Host
-	logger         micrologger.Logger
+	hostFramework *framework.Host
+	logger        micrologger.Logger
 
 	clusterID   string
 	githubToken string
 }
 
 func NewKVM(config KVMConfig) (*KVM, error) {
-	if config.GuestFramework == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.GuestFramework must not be empty", config)
-	}
 	if config.HostFramework == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.HostFramework must not be empty", config)
 	}
@@ -46,9 +40,8 @@ func NewKVM(config KVMConfig) (*KVM, error) {
 	}
 
 	k := &KVM{
-		guestFramework: config.GuestFramework,
-		hostFramework:  config.HostFramework,
-		logger:         config.Logger,
+		hostFramework: config.HostFramework,
+		logger:        config.Logger,
 
 		clusterID:   config.ClusterID,
 		githubToken: config.GithubToken,
@@ -57,11 +50,20 @@ func NewKVM(config KVMConfig) (*KVM, error) {
 	return k, nil
 }
 
-func (a *KVM) CurrentVersion() (string, error) {
+func (k *KVM) CurrentStatus() (v1alpha1.StatusCluster, error) {
+	customObject, err := k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
+	if err != nil {
+		return v1alpha1.StatusCluster{}, microerror.Mask(err)
+	}
+
+	return customObject.Status.Cluster, nil
+}
+
+func (k *KVM) CurrentVersion() (string, error) {
 	p := &framework.VBVParams{
 		Component: "kvm-operator",
 		Provider:  "kvm",
-		Token:     a.githubToken,
+		Token:     k.githubToken,
 		VType:     "current",
 	}
 	v, err := framework.GetVersionBundleVersion(p)
@@ -76,11 +78,11 @@ func (a *KVM) CurrentVersion() (string, error) {
 	return v, nil
 }
 
-func (a *KVM) NextVersion() (string, error) {
+func (k *KVM) NextVersion() (string, error) {
 	p := &framework.VBVParams{
 		Component: "kvm-operator",
 		Provider:  "kvm",
-		Token:     a.githubToken,
+		Token:     k.githubToken,
 		VType:     "wip",
 	}
 	v, err := framework.GetVersionBundleVersion(p)
@@ -96,28 +98,18 @@ func (a *KVM) NextVersion() (string, error) {
 }
 
 func (k *KVM) UpdateVersion(nextVersion string) error {
-	patches := []Patch{
-		{
-			Op:    "replace",
-			Path:  "/spec/versionBundle/version",
-			Value: nextVersion,
-		},
-	}
-
-	b, err := json.Marshal(patches)
+	customObject, err := k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	_, err = k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Patch(k.clusterID, types.JSONPatchType, b)
+	customObject.Spec.Cluster.Kubernetes.Kubelet.Labels = ensureLabel(customObject.Spec.Cluster.Kubernetes.Kubelet.Labels, "kvm-operator.giantswarm.io/version", nextVersion)
+	customObject.Spec.VersionBundle.Version = nextVersion
+
+	_, err = k.hostFramework.G8sClient().ProviderV1alpha1().KVMConfigs("default").Update(customObject)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	return nil
-}
-
-// TODO
-func (k *KVM) WaitForUpdate(nextVersion string) error {
 	return nil
 }
