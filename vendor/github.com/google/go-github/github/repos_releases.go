@@ -79,6 +79,9 @@ func (s *RepositoriesService) ListReleases(ctx context.Context, owner, repo stri
 		return nil, nil, err
 	}
 
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
+
 	var releases []*RepositoryRelease
 	resp, err := s.client.Do(ctx, req, &releases)
 	if err != nil {
@@ -117,6 +120,9 @@ func (s *RepositoriesService) getSingleRelease(ctx context.Context, url string) 
 		return nil, nil, err
 	}
 
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
+
 	release := new(RepositoryRelease)
 	resp, err := s.client.Do(ctx, req, release)
 	if err != nil {
@@ -136,6 +142,9 @@ func (s *RepositoriesService) CreateRelease(ctx context.Context, owner, repo str
 		return nil, nil, err
 	}
 
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
+
 	r := new(RepositoryRelease)
 	resp, err := s.client.Do(ctx, req, r)
 	if err != nil {
@@ -154,6 +163,9 @@ func (s *RepositoriesService) EditRelease(ctx context.Context, owner, repo strin
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
 
 	r := new(RepositoryRelease)
 	resp, err := s.client.Do(ctx, req, r)
@@ -191,6 +203,9 @@ func (s *RepositoriesService) ListReleaseAssets(ctx context.Context, owner, repo
 		return nil, nil, err
 	}
 
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
+
 	var assets []*ReleaseAsset
 	resp, err := s.client.Do(ctx, req, &assets)
 	if err != nil {
@@ -209,6 +224,9 @@ func (s *RepositoriesService) GetReleaseAsset(ctx context.Context, owner, repo s
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
 
 	asset := new(ReleaseAsset)
 	resp, err := s.client.Do(ctx, req, asset)
@@ -274,6 +292,9 @@ func (s *RepositoriesService) EditReleaseAsset(ctx context.Context, owner, repo 
 		return nil, nil, err
 	}
 
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
+
 	asset := new(ReleaseAsset)
 	resp, err := s.client.Do(ctx, req, asset)
 	if err != nil {
@@ -319,6 +340,9 @@ func (s *RepositoriesService) UploadReleaseAsset(ctx context.Context, owner, rep
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGraphQLNodeIDPreview)
 
 	asset := new(ReleaseAsset)
 	resp, err := s.client.Do(ctx, req, asset)

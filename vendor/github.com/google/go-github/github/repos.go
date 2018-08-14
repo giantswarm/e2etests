@@ -20,7 +20,6 @@ type RepositoriesService service
 // Repository represents a GitHub repository.
 type Repository struct {
 	ID               *int64           `json:"id,omitempty"`
-	NodeID           *string          `json:"node_id,omitempty"`
 	Owner            *User            `json:"owner,omitempty"`
 	Name             *string          `json:"name,omitempty"`
 	FullName         *string          `json:"full_name,omitempty"`
@@ -568,9 +567,6 @@ type PullRequestReviewsEnforcement struct {
 	DismissStaleReviews bool `json:"dismiss_stale_reviews"`
 	// RequireCodeOwnerReviews specifies if an approved review is required in pull requests including files with a designated code owner.
 	RequireCodeOwnerReviews bool `json:"require_code_owner_reviews"`
-	// RequiredApprovingReviewCount specifies the number of approvals required before the pull request can be merged.
-	// Valid values are 1-6.
-	RequiredApprovingReviewCount int `json:"required_approving_review_count"`
 }
 
 // PullRequestReviewsEnforcementRequest represents request to set the pull request review
@@ -585,9 +581,6 @@ type PullRequestReviewsEnforcementRequest struct {
 	DismissStaleReviews bool `json:"dismiss_stale_reviews"`
 	// RequireCodeOwnerReviews specifies if an approved review is required in pull requests including files with a designated code owner.
 	RequireCodeOwnerReviews bool `json:"require_code_owner_reviews"`
-	// RequiredApprovingReviewCount specifies the number of approvals required before the pull request can be merged.
-	// Valid values are 1-6.
-	RequiredApprovingReviewCount int `json:"required_approving_review_count"`
 }
 
 // PullRequestReviewsEnforcementUpdate represents request to patch the pull request review
@@ -600,9 +593,6 @@ type PullRequestReviewsEnforcementUpdate struct {
 	DismissStaleReviews *bool `json:"dismiss_stale_reviews,omitempty"`
 	// RequireCodeOwnerReviews specifies if an approved review is required in pull requests including files with a designated code owner.
 	RequireCodeOwnerReviews bool `json:"require_code_owner_reviews,omitempty"`
-	// RequiredApprovingReviewCount specifies the number of approvals required before the pull request can be merged.
-	// Valid values are 1 - 6.
-	RequiredApprovingReviewCount int `json:"required_approving_review_count"`
 }
 
 // AdminEnforcement represents the configuration to enforce required status checks for repository administrators.
@@ -667,7 +657,7 @@ func (s *RepositoriesService) ListBranches(ctx context.Context, owner string, re
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	var branches []*Branch
 	resp, err := s.client.Do(ctx, req, &branches)
@@ -689,7 +679,7 @@ func (s *RepositoriesService) GetBranch(ctx context.Context, owner, repo, branch
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	b := new(Branch)
 	resp, err := s.client.Do(ctx, req, b)
@@ -711,7 +701,7 @@ func (s *RepositoriesService) GetBranchProtection(ctx context.Context, owner, re
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	p := new(Protection)
 	resp, err := s.client.Do(ctx, req, p)
@@ -733,7 +723,7 @@ func (s *RepositoriesService) GetRequiredStatusChecks(ctx context.Context, owner
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	p := new(RequiredStatusChecks)
 	resp, err := s.client.Do(ctx, req, p)
@@ -755,7 +745,7 @@ func (s *RepositoriesService) ListRequiredStatusChecksContexts(ctx context.Conte
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	resp, err = s.client.Do(ctx, req, &contexts)
 	if err != nil {
@@ -776,7 +766,7 @@ func (s *RepositoriesService) UpdateBranchProtection(ctx context.Context, owner,
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	p := new(Protection)
 	resp, err := s.client.Do(ctx, req, p)
@@ -798,7 +788,7 @@ func (s *RepositoriesService) RemoveBranchProtection(ctx context.Context, owner,
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	return s.client.Do(ctx, req, nil)
 }
@@ -852,7 +842,7 @@ func (s *RepositoriesService) GetPullRequestReviewEnforcement(ctx context.Contex
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	r := new(PullRequestReviewsEnforcement)
 	resp, err := s.client.Do(ctx, req, r)
@@ -875,7 +865,7 @@ func (s *RepositoriesService) UpdatePullRequestReviewEnforcement(ctx context.Con
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	r := new(PullRequestReviewsEnforcement)
 	resp, err := s.client.Do(ctx, req, r)
@@ -903,7 +893,7 @@ func (s *RepositoriesService) DisableDismissalRestrictions(ctx context.Context, 
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	r := new(PullRequestReviewsEnforcement)
 	resp, err := s.client.Do(ctx, req, r)
@@ -925,7 +915,7 @@ func (s *RepositoriesService) RemovePullRequestReviewEnforcement(ctx context.Con
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	return s.client.Do(ctx, req, nil)
 }
@@ -941,7 +931,7 @@ func (s *RepositoriesService) GetAdminEnforcement(ctx context.Context, owner, re
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	r := new(AdminEnforcement)
 	resp, err := s.client.Do(ctx, req, r)
@@ -964,7 +954,7 @@ func (s *RepositoriesService) AddAdminEnforcement(ctx context.Context, owner, re
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	r := new(AdminEnforcement)
 	resp, err := s.client.Do(ctx, req, r)
@@ -986,7 +976,7 @@ func (s *RepositoriesService) RemoveAdminEnforcement(ctx context.Context, owner,
 	}
 
 	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeRequiredApprovingReviewsPreview)
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	return s.client.Do(ctx, req, nil)
 }
