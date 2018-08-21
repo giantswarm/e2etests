@@ -139,7 +139,7 @@ func (aws *AWS) CreateCluster(clusterName string) error {
 			return microerror.Mask(err)
 		}
 
-		err = framework.HelmCmd("registry install quay.io/giantswarm/apiextensions-aws-config-e2e-chart:stable -- -n aws-config-e2e --values " + f.Name())
+		err = framework.HelmCmd(fmt.Sprintf("registry install quay.io/giantswarm/apiextensions-aws-config-e2e-chart:stable -- -n %s --values %s", awsConfigDeploymentName(clusterName), f.Name()))
 		if err != nil {
 			return microerror.Mask(err)
 		}
