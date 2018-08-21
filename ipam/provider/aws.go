@@ -22,12 +22,12 @@ import (
 // would be too high risk for unintentional disruption of other tests if
 // ${CLUSTER_NAME} would be dynamically changed on the fly.
 const apiextensionsAWSConfigE2EChartValues = `commonDomain: {{ .CommonDomain }}
-clusterName: %s
+clusterName: {{ .ClusterName }}
 clusterVersion: v_0_1_0
-sshPublicKey: {{ .SSHPublicKey}}
+sshPublicKey: {{ .SSHPublicKey }}
 versionBundleVersion: {{ .VersionBundleVersion }}
 aws:
-  region: ${ .AWSRegion }
+  region: {{ .AWSRegion }}
   apiHostedZone: {{ .AWSAPIHostedZoneGuest }}
   ingressHostedZone: {{ .AWSIngressHostedZoneGuest }}
   routeTable0: {{ .AWSRouteTable0 }}
