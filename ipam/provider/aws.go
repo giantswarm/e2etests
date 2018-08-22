@@ -146,6 +146,8 @@ func (aws *AWS) CreateCluster(clusterName string) error {
 
 		chartValuesConfig := aws.chartValuesConfig
 		chartValuesConfig.ClusterName = clusterName
+		chartValuesConfig.AWSRouteTable0 = clusterName + "_0"
+		chartValuesConfig.AWSRouteTable1 = clusterName + "_1"
 		err = aws.chartValuesTemplate.Execute(f, chartValuesConfig)
 		if err != nil {
 			return microerror.Mask(err)
