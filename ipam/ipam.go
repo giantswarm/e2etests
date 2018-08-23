@@ -66,7 +66,7 @@ func (c *IPAM) Test(ctx context.Context) error {
 		clusterFour  = c.hostClusterName + "-cluster3"
 
 		// allocatedSubnets[clusterName]subnetCIDRStr
-		allocatedSubnets map[string]string
+		allocatedSubnets = make(map[string]string)
 		err              error
 	)
 
