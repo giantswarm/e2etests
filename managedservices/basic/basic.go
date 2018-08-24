@@ -95,7 +95,7 @@ func (h *Basic) Test(ctx context.Context, chartConfig ChartConfig, chartResource
 	{
 		h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", chartConfig.ChartName))
 
-		err = h.resource.InstallResource(chartConfig.ChartName, chartConfig.ChartValues, chartConfig.ChartValues)
+		err = h.resource.InstallResource(chartConfig.ChartName, chartConfig.ChannelName, chartConfig.ChartValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
