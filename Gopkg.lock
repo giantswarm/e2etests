@@ -277,6 +277,14 @@
   revision = "4462d519f9a0c8968ab498c5ab8fd21975f5d58c"
 
 [[projects]]
+  branch = "contains"
+  digest = "1:6bd49e15179a5351604f234dbb12f4d3fb1c64b6885e0221582003a22af47271"
+  name = "github.com/giantswarm/ipam"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "897e6c52e31ff94b8b62c7728a0e5a62d6ac45d8"
+
+[[projects]]
   branch = "master"
   digest = "1:49101d1a9e4d6f96c18cc9fe87c9107629dc6031b658cb8b9baea4f2c791789a"
   name = "github.com/giantswarm/k8sportforward"
@@ -302,6 +310,14 @@
   ]
   pruneopts = "UT"
   revision = "d757f42e4a3efca1fe82e633579b28c586e08698"
+
+[[projects]]
+  branch = "master"
+  digest = "1:ddd43139c09097ebf88f8748425ae83d37770763aae32f6a855782847161e587"
+  name = "github.com/giantswarm/microstorage"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4411a6307c6b844b7f9e68aaba37407b41b1c4d7"
 
 [[projects]]
   branch = "master"
@@ -552,12 +568,12 @@
   version = "v1.1"
 
 [[projects]]
-  digest = "1:b6221ec0f8903b556e127c449e7106b63e6867170c2d10a7c058623d086f2081"
+  branch = "master"
+  digest = "1:807c9fe0be3321781b6922b6659ad7f938864b475d581c802f46de981ad48e3b"
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
   pruneopts = "UT"
-  revision = "c5b7fccd204277076155f10851dad72b76a49317"
-  version = "v0.8.0"
+  revision = "ebce7d0078c0109cbb4de5d50a2b799920b0f0d0"
 
 [[projects]]
   branch = "master"
@@ -1295,6 +1311,7 @@
     "github.com/giantswarm/e2eclients/aws",
     "github.com/giantswarm/e2eclients/azure",
     "github.com/giantswarm/helmclient",
+    "github.com/giantswarm/ipam",
     "github.com/giantswarm/microerror",
     "github.com/giantswarm/micrologger",
     "github.com/spf13/afero",
