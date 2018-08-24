@@ -42,5 +42,5 @@ type Interface interface {
 	// - Check resources are correct.
 	// - Run helm release tests.
 	//
-	Test(ctx context.Context) error
+	Test(ctx context.Context, chartConfig ChartConfig, chartResources ChartResources) error
 }

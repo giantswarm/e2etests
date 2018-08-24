@@ -16,8 +16,7 @@ import (
 )
 
 type Config struct {
-	ChartConfig    ChartConfig
-	ChartResources ChartResources
+	Namespace string
 
 	ApprClient    apprclient.Interface
 	HelmClient    helmclient.Interface
@@ -26,8 +25,7 @@ type Config struct {
 }
 
 type Basic struct {
-	chartConfig    ChartConfig
-	chartResources ChartResources
+	namespace string
 
 	apprClient    apprclient.Interface
 	helmClient    helmclient.Interface
@@ -39,13 +37,8 @@ type Basic struct {
 func New(config Config) (*Basic, error) {
 	var err error
 
-	err = validateChartConfig(config.ChartConfig)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-	err = validateChartResources(config.ChartResources)
-	if err != nil {
-		return nil, microerror.Mask(err)
+	if config.Namespace == "" {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Namespace must not be empty", config)
 	}
 
 	if config.ApprClient == nil {
@@ -67,7 +60,7 @@ func New(config Config) (*Basic, error) {
 			ApprClient: config.ApprClient,
 			HelmClient: config.HelmClient,
 			Logger:     config.Logger,
-			Namespace:  config.ChartConfig.Namespace,
+			Namespace:  config.Namespace,
 		}
 
 		resource, err = frameworkresource.New(c)
@@ -77,9 +70,6 @@ func New(config Config) (*Basic, error) {
 	}
 
 	h := &Basic{
-		chartConfig:    config.ChartConfig,
-		chartResources: config.ChartResources,
-
 		apprClient:    config.ApprClient,
 		helmClient:    config.HelmClient,
 		hostFramework: config.HostFramework,
@@ -90,24 +80,33 @@ func New(config Config) (*Basic, error) {
 	return h, nil
 }
 
-func (h *Basic) Test(ctx context.Context) error {
+func (h *Basic) Test(ctx context.Context, chartConfig ChartConfig, chartResources ChartResources) error {
 	var err error
 
-	{
-		h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", h.chartConfig.ChartName))
+	err = validateChartConfig(chartConfig)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	err = validateChartResources(chartResources)
+	if err != nil {
+		return microerror.Mask(err)
+	}
 
-		err = h.resource.InstallResource(h.chartConfig.ChartName, h.chartConfig.ChartValues, h.chartConfig.ChartValues)
+	{
+		h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", chartConfig.ChartName))
+
+		err = h.resource.InstallResource(chartConfig.ChartName, chartConfig.ChartValues, chartConfig.ChartValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed chart %#q", h.chartConfig.ChartName))
+		h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed chart %#q", chartConfig.ChartName))
 	}
 
 	{
 		h.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
 
-		err = h.resource.WaitForStatus(h.chartConfig.ReleaseName, "DEPLOYED")
+		err = h.resource.WaitForStatus(chartConfig.ReleaseName, "DEPLOYED")
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -117,7 +116,7 @@ func (h *Basic) Test(ctx context.Context) error {
 	{
 		h.logger.LogCtx(ctx, "level", "debug", "message", "checking resources")
 
-		for _, ds := range h.chartResources.DaemonSets {
+		for _, ds := range chartResources.DaemonSets {
 			h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking daemonset %#q", ds.Name))
 
 			err = h.checkDaemonSet(ds)
@@ -128,7 +127,7 @@ func (h *Basic) Test(ctx context.Context) error {
 			h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("daemonset %#q is correct", ds.Name))
 		}
 
-		for _, d := range h.chartResources.Deployments {
+		for _, d := range chartResources.Deployments {
 			h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking deployment %#q", d.Name))
 
 			err = h.checkDeployment(d)
@@ -145,7 +144,7 @@ func (h *Basic) Test(ctx context.Context) error {
 	{
 		h.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
 
-		err = h.helmClient.RunReleaseTest(h.chartConfig.ReleaseName)
+		err = h.helmClient.RunReleaseTest(chartConfig.ReleaseName)
 		if err != nil {
 			return microerror.Mask(err)
 		}
