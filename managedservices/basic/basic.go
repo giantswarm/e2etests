@@ -1,4 +1,4 @@
-package helm
+package basic
 
 import (
 	"context"
@@ -25,7 +25,7 @@ type Config struct {
 	Logger        micrologger.Logger
 }
 
-type Helm struct {
+type Basic struct {
 	chartConfig    ChartConfig
 	chartResources ChartResources
 
@@ -36,7 +36,7 @@ type Helm struct {
 	resource      *frameworkresource.Resource
 }
 
-func New(config Config) (*Helm, error) {
+func New(config Config) (*Basic, error) {
 	var err error
 
 	err = validateChartConfig(config.ChartConfig)
@@ -76,7 +76,7 @@ func New(config Config) (*Helm, error) {
 		}
 	}
 
-	h := &Helm{
+	h := &Basic{
 		chartConfig:    config.ChartConfig,
 		chartResources: config.ChartResources,
 
@@ -90,7 +90,7 @@ func New(config Config) (*Helm, error) {
 	return h, nil
 }
 
-func (h *Helm) Test(ctx context.Context) error {
+func (h *Basic) Test(ctx context.Context) error {
 	var err error
 
 	{
@@ -157,7 +157,7 @@ func (h *Helm) Test(ctx context.Context) error {
 }
 
 // checkDaemonSet ensures that key properties of the daemonset are correct.
-func (h *Helm) checkDaemonSet(expectedDaemonSet DaemonSet) error {
+func (h *Basic) checkDaemonSet(expectedDaemonSet DaemonSet) error {
 	ds, err := h.hostFramework.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "daemonset: %#q", expectedDaemonSet.Name, err)
@@ -184,7 +184,7 @@ func (h *Helm) checkDaemonSet(expectedDaemonSet DaemonSet) error {
 }
 
 // checkDeployment ensures that key properties of the deployment are correct.
-func (h *Helm) checkDeployment(expectedDeployment Deployment) error {
+func (h *Basic) checkDeployment(expectedDeployment Deployment) error {
 	ds, err := h.hostFramework.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "deployment: %#q", expectedDeployment.Name, err)

@@ -1,4 +1,4 @@
-package helm
+package basic
 
 import "context"
 
@@ -34,7 +34,8 @@ type Deployment struct {
 }
 
 type Interface interface {
-	// Test executes the test of the helm chart.
+	// Test executes the test of a managed services chart of basic
+	// functionality that applies to all managed services charts.
 	//
 	// - Install chart.
 	// - Check chart is deployed.
