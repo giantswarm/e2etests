@@ -18,8 +18,8 @@ import (
 type Config struct {
 	Namespace string
 
-	ApprClient    apprclient.Interface
-	HelmClient    helmclient.Interface
+	ApprClient    *apprclient.Client
+	HelmClient    *helmclient.Client
 	HostFramework *framework.Host
 	Logger        micrologger.Logger
 }
@@ -27,8 +27,8 @@ type Config struct {
 type Basic struct {
 	namespace string
 
-	apprClient    apprclient.Interface
-	helmClient    helmclient.Interface
+	apprClient    *apprclient.Client
+	helmClient    *helmclient.Client
 	hostFramework *framework.Host
 	logger        micrologger.Logger
 	resource      *frameworkresource.Resource

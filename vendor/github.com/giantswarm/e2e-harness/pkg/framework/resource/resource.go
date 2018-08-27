@@ -16,16 +16,16 @@ import (
 )
 
 type ResourceConfig struct {
-	ApprClient apprclient.Interface
-	HelmClient helmclient.Interface
+	ApprClient *apprclient.Client
+	HelmClient *helmclient.Client
 	Logger     micrologger.Logger
 
 	Namespace string
 }
 
 type Resource struct {
-	apprClient apprclient.Interface
-	helmClient helmclient.Interface
+	apprClient *apprclient.Client
+	helmClient *helmclient.Client
 	logger     micrologger.Logger
 
 	namespace string
