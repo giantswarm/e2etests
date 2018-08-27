@@ -1,4 +1,4 @@
-package basic
+package managedservices
 
 import "github.com/giantswarm/microerror"
 

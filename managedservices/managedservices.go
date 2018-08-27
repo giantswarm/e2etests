@@ -1,4 +1,4 @@
-package basic
+package managedservices
 
 import (
 	"context"
@@ -95,7 +95,7 @@ func (h *Basic) Test(ctx context.Context, chartConfig ChartConfig, chartResource
 	{
 		h.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", chartConfig.ChartName))
 
-		err = h.resource.InstallResource(chartConfig.ChartName, chartConfig.ChannelName, chartConfig.ChartValues)
+		err = h.resource.InstallResource(chartConfig.ChartName, chartConfig.ChartValues, chartConfig.ChannelName)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -106,7 +106,7 @@ func (h *Basic) Test(ctx context.Context, chartConfig ChartConfig, chartResource
 	{
 		h.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
 
-		err = h.resource.WaitForStatus(chartConfig.ReleaseName, "DEPLOYED")
+		err = h.resource.WaitForStatus(chartConfig.ChartName, "DEPLOYED")
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -144,7 +144,7 @@ func (h *Basic) Test(ctx context.Context, chartConfig ChartConfig, chartResource
 	{
 		h.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
 
-		err = h.helmClient.RunReleaseTest(chartConfig.ReleaseName)
+		err = h.helmClient.RunReleaseTest(chartConfig.ChartName)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -164,17 +164,14 @@ func (h *Basic) checkDaemonSet(expectedDaemonSet DaemonSet) error {
 		return microerror.Mask(err)
 	}
 
-	// Check daemonset labels.
 	if !reflect.DeepEqual(expectedDaemonSet.Labels, ds.ObjectMeta.Labels) {
 		return microerror.Maskf(invalidLabelsError, "expected labels: %v got: %v", expectedDaemonSet.Labels, ds.ObjectMeta.Labels)
 	}
 
-	// Check selector match labels.
 	if !reflect.DeepEqual(expectedDaemonSet.MatchLabels, ds.Spec.Selector.MatchLabels) {
 		return microerror.Maskf(invalidLabelsError, "expected match labels: %v got: %v", expectedDaemonSet.MatchLabels, ds.Spec.Selector.MatchLabels)
 	}
 
-	// Check pod labels.
 	if !reflect.DeepEqual(expectedDaemonSet.Labels, ds.Spec.Template.ObjectMeta.Labels) {
 		return microerror.Maskf(invalidLabelsError, "expected pod labels: %v got: %v", expectedDaemonSet.Labels, ds.Spec.Template.ObjectMeta.Labels)
 	}
@@ -191,22 +188,18 @@ func (h *Basic) checkDeployment(expectedDeployment Deployment) error {
 		return microerror.Mask(err)
 	}
 
-	// Check replicas count.
 	if int32(expectedDeployment.Replicas) != *ds.Spec.Replicas {
 		return microerror.Maskf(invalidReplicasError, "expected %d replicas got: %d", expectedDeployment.Replicas, *ds.Spec.Replicas)
 	}
 
-	// Check deployment labels.
 	if !reflect.DeepEqual(expectedDeployment.Labels, ds.ObjectMeta.Labels) {
 		return microerror.Maskf(invalidLabelsError, "expected labels: %v got: %v", expectedDeployment.Labels, ds.ObjectMeta.Labels)
 	}
 
-	// Check selector match labels.
 	if !reflect.DeepEqual(expectedDeployment.MatchLabels, ds.Spec.Selector.MatchLabels) {
 		return microerror.Maskf(invalidLabelsError, "expected match labels: %v got: %v", expectedDeployment.MatchLabels, ds.Spec.Selector.MatchLabels)
 	}
 
-	// Check pod labels.
 	if !reflect.DeepEqual(expectedDeployment.Labels, ds.Spec.Template.ObjectMeta.Labels) {
 		return microerror.Newf("expected pod labels: %v got: %v", expectedDeployment.Labels, ds.Spec.Template.ObjectMeta.Labels)
 	}
@@ -223,9 +216,6 @@ func validateChartConfig(chartConfig ChartConfig) error {
 	}
 	if chartConfig.Namespace == "" {
 		return microerror.Maskf(invalidConfigError, "%T.Namespace must not be empty", chartConfig)
-	}
-	if chartConfig.ReleaseName == "" {
-		return microerror.Maskf(invalidConfigError, "%T.ReleaseName must not be empty", chartConfig)
 	}
 
 	return nil

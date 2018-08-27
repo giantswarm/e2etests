@@ -1,15 +1,16 @@
-package basic
+package managedservices
 
 import "context"
 
+// ChartConfig is the chart to test.
 type ChartConfig struct {
 	ChannelName string
 	ChartName   string
 	ChartValues string
 	Namespace   string
-	ReleaseName string
 }
 
+// ChartResources are the key resources deployed by the chart.
 type ChartResources struct {
 	DaemonSets  []DaemonSet
 	Deployments []Deployment
@@ -34,12 +35,12 @@ type Deployment struct {
 }
 
 type Interface interface {
-	// Test executes the test of a managed services chart of basic
+	// Test executes the test of a managed services chart with basic
 	// functionality that applies to all managed services charts.
 	//
 	// - Install chart.
 	// - Check chart is deployed.
-	// - Check resources are correct.
+	// - Check key resources are correct.
 	// - Run helm release tests.
 	//
 	Test(ctx context.Context, chartConfig ChartConfig, chartResources ChartResources) error
