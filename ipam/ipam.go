@@ -120,7 +120,7 @@ func (c *IPAM) Test(ctx context.Context) error {
 			return microerror.Mask(err)
 		}
 
-		// Verify that there are no duplicate subnet allocations.
+		c.logger.LogCtx(ctx, "level", "debug", "message", "verify that there are no duplicate subnet allocations")
 		subnet := awsConfig.Status.Cluster.Network.CIDR
 		otherCluster, exists := allocatedSubnets[subnet]
 		if exists {
@@ -177,8 +177,7 @@ func (c *IPAM) Test(ctx context.Context) error {
 	}
 
 	{
-		// Verify that allocated subnet for clusterFour doesn't overlap with
-		// terminated clusterTwo or any other existing cluster.
+		c.logger.LogCtx(ctx, "level", "debug", "message", "verify that clusterFour subnet doesn't overlap with other allocations")
 		awsConfig, err := c.hostFramework.AWSCluster(clusterFour)
 		if err != nil {
 			return microerror.Mask(err)
