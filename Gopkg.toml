@@ -63,7 +63,7 @@ required = [
   name = "github.com/giantswarm/e2e-harness"
 
 [[constraint]]
-  branch = "contains"
+  branch = "master"
   name = "github.com/giantswarm/ipam"
 
 [[constraint]]
