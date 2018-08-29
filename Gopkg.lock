@@ -263,6 +263,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:5f571ec2dd3457d4c7641e9129717cd5fab05082ae8bec09a39aabe208af6e3a"
+  name = "github.com/giantswarm/e2etemplates"
+  packages = [
+    "internal/render",
+    "pkg/chartvalues",
+  ]
+  pruneopts = "UT"
+  revision = "bb4e1e045f232011219dfd16ef35fb8afda60594"
+
+[[projects]]
+  branch = "master"
   digest = "1:a880954e10c62b72dd4c6085d3a64d659b51c10116d2ceb17edbc483a5e4b101"
   name = "github.com/giantswarm/errors"
   packages = ["guest"]
@@ -1312,6 +1323,7 @@
     "github.com/giantswarm/e2e-harness/pkg/framework/resource",
     "github.com/giantswarm/e2eclients/aws",
     "github.com/giantswarm/e2eclients/azure",
+    "github.com/giantswarm/e2etemplates/pkg/chartvalues",
     "github.com/giantswarm/helmclient",
     "github.com/giantswarm/ipam",
     "github.com/giantswarm/microerror",
