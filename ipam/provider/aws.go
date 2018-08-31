@@ -66,16 +66,16 @@ func NewAWS(config AWSConfig) (*AWS, error) {
 		logger:        config.Logger,
 
 		chartValuesConfig: ChartValuesConfig{
-			AWSAPIHostedZoneGuest:     getValue(config.AWSAPIHostedZoneGuest, env.AWSAPIHostedZoneGuest()),
-			AWSIngressHostedZoneGuest: getValue(config.AWSIngressHostedZoneGuest, env.AWSIngressHostedZoneGuest()),
-			AWSRegion:                 getValue(config.AWSRegion, env.AWSRegion()),
-			AWSRouteTable0:            getValue(config.AWSRouteTable0, env.AWSRouteTable0()),
-			AWSRouteTable1:            getValue(config.AWSRouteTable1, env.AWSRouteTable1()),
-			CommonDomain:              getValue(config.CommonDomain, env.CommonDomain()),
-			SSHPublicKey:              getValue(config.SSHPublicKey, env.SSHPublicKey()),
-			VersionBundleVersion:      getValue(config.VersionBundleVersion, env.VersionBundleVersion()),
+			AWSAPIHostedZoneGuest:     getValue(config.AWSAPIHostedZoneGuest, env.AWSAPIHostedZoneGuest),
+			AWSIngressHostedZoneGuest: getValue(config.AWSIngressHostedZoneGuest, env.AWSIngressHostedZoneGuest),
+			AWSRegion:                 getValue(config.AWSRegion, env.AWSRegion),
+			AWSRouteTable0:            getValue(config.AWSRouteTable0, env.AWSRouteTable0),
+			AWSRouteTable1:            getValue(config.AWSRouteTable1, env.AWSRouteTable1),
+			CommonDomain:              getValue(config.CommonDomain, env.CommonDomain),
+			SSHPublicKey:              getValue(config.SSHPublicKey, env.SSHPublicKey),
+			VersionBundleVersion:      getValue(config.VersionBundleVersion, env.VersionBundleVersion),
 		},
-		hostClusterName: getValue(config.ClusterName, env.ClusterName()),
+		hostClusterName: getValue(config.ClusterName, env.ClusterName),
 	}
 
 	return a, nil
@@ -249,10 +249,10 @@ func certDeploymentName(clusterName string) string {
 	return fmt.Sprintf("cert-config-e2e-%s", clusterName)
 }
 
-// getValue returns val if not empty, otherwise os.Getenv(envName).
-func getValue(val, envName string) string {
+// getValue returns val if not empty, otherwise getEnv().
+func getValue(val string, getEnv func() string) string {
 	if val == "" {
-		return os.Getenv(envName)
+		return getEnv()
 	}
 	return val
 }
