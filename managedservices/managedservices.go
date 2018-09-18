@@ -63,7 +63,7 @@ func New(config Config) (*ManagedServices, error) {
 
 	var resource *frameworkresource.Resource
 	{
-		c := frameworkresource.ResourceConfig{
+		c := frameworkresource.Config{
 			ApprClient: config.ApprClient,
 			HelmClient: config.HelmClient,
 			Logger:     config.Logger,
