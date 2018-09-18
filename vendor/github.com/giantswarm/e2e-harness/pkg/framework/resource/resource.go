@@ -15,7 +15,11 @@ import (
 	"github.com/giantswarm/e2e-harness/pkg/framework"
 )
 
-type ResourceConfig struct {
+const (
+	defaultNamespace = "default"
+)
+
+type Config struct {
 	ApprClient *apprclient.Client
 	HelmClient *helmclient.Client
 	Logger     micrologger.Logger
@@ -31,7 +35,7 @@ type Resource struct {
 	namespace string
 }
 
-func New(config ResourceConfig) (*Resource, error) {
+func New(config Config) (*Resource, error) {
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
@@ -59,7 +63,7 @@ func New(config ResourceConfig) (*Resource, error) {
 		return nil, microerror.Maskf(invalidConfigError, "%T.HelmClient must not be empty", config)
 	}
 	if config.Namespace == "" {
-		config.Namespace = "giantswarm"
+		config.Namespace = defaultNamespace
 	}
 	c := &Resource{
 		apprClient: config.ApprClient,
@@ -72,7 +76,16 @@ func New(config ResourceConfig) (*Resource, error) {
 	return c, nil
 }
 
-func (r *Resource) InstallResource(name, values, channel string, conditions ...func() error) error {
+func (r *Resource) Delete(name string) error {
+	err := r.helmClient.DeleteRelease(name, helm.DeletePurge(true))
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+func (r *Resource) Install(name, values, channel string, conditions ...func() error) error {
 	chartname := fmt.Sprintf("%s-chart", name)
 
 	tarball, err := r.apprClient.PullChartTarball(chartname, channel)
@@ -94,7 +107,7 @@ func (r *Resource) InstallResource(name, values, channel string, conditions ...f
 	return nil
 }
 
-func (r *Resource) UpdateResource(name, values, channel string, conditions ...func() error) error {
+func (r *Resource) Update(name, values, channel string, conditions ...func() error) error {
 	chartname := fmt.Sprintf("%s-chart", name)
 
 	tarballPath, err := r.apprClient.PullChartTarball(chartname, channel)
