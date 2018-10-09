@@ -7,7 +7,7 @@ import (
 
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/e2e-harness/pkg/framework"
-	frameworkresource "github.com/giantswarm/e2e-harness/pkg/framework/resource"
+	"github.com/giantswarm/e2e-harness/pkg/release"
 	"github.com/giantswarm/helmclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -21,19 +21,19 @@ type Config struct {
 	HostFramework *framework.Host
 	Logger        micrologger.Logger
 
-	ChartConfig    ChartConfig
-	ChartResources ChartResources
+	ChartConfig  ChartConfig
+	ChartObjects ChartObjects
 }
 
 type ManagedServices struct {
 	apprClient    *apprclient.Client
 	helmClient    *helmclient.Client
 	hostFramework *framework.Host
+	hostRelease   *release.Release
 	logger        micrologger.Logger
-	resource      *frameworkresource.Resource
 
 	chartConfig    ChartConfig
-	chartResources ChartResources
+	chartResources ChartObjects
 }
 
 func New(config Config) (*ManagedServices, error) {
@@ -56,21 +56,21 @@ func New(config Config) (*ManagedServices, error) {
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
-	err = config.ChartResources.Validate()
+	err = config.ChartObjects.Validate()
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	var resource *frameworkresource.Resource
+	var hostRelease *release.Release
 	{
-		c := frameworkresource.Config{
+		c := release.Config{
 			ApprClient: config.ApprClient,
 			HelmClient: config.HelmClient,
 			Logger:     config.Logger,
 			Namespace:  config.ChartConfig.Namespace,
 		}
 
-		resource, err = frameworkresource.New(c)
+		hostRelease, err = release.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -81,10 +81,10 @@ func New(config Config) (*ManagedServices, error) {
 		helmClient:    config.HelmClient,
 		hostFramework: config.HostFramework,
 		logger:        config.Logger,
-		resource:      resource,
+		hostRelease:   hostRelease,
 
 		chartConfig:    config.ChartConfig,
-		chartResources: config.ChartResources,
+		chartResources: config.ChartObjects,
 	}
 
 	return ms, nil
@@ -96,7 +96,7 @@ func (ms *ManagedServices) Test(ctx context.Context) error {
 	{
 		ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", ms.chartConfig.ChartName))
 
-		err = ms.resource.Install(ms.chartConfig.ChartName, ms.chartConfig.ChartValues, ms.chartConfig.ChannelName)
+		err = ms.hostRelease.Install(ms.chartConfig.ChartName, ms.chartConfig.ChartValues, ms.chartConfig.ChannelName)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -107,7 +107,7 @@ func (ms *ManagedServices) Test(ctx context.Context) error {
 	{
 		ms.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
 
-		err = ms.resource.WaitForStatus(ms.chartConfig.ChartName, "DEPLOYED")
+		err = ms.hostRelease.WaitForStatus(ms.chartConfig.ChartName, "DEPLOYED")
 		if err != nil {
 			return microerror.Mask(err)
 		}

@@ -29,13 +29,13 @@ func (cc ChartConfig) Validate() error {
 	return nil
 }
 
-// ChartResources are the key resources deployed by the chart.
-type ChartResources struct {
+// ChartObjects are the key resources deployed by the chart.
+type ChartObjects struct {
 	DaemonSets  []DaemonSet
 	Deployments []Deployment
 }
 
-func (cr ChartResources) Validate() error {
+func (cr ChartObjects) Validate() error {
 	if len(cr.DaemonSets) == 0 && len(cr.Deployments) == 0 {
 		return microerror.Maskf(invalidConfigError, "at least one daemonset or deployment must be specified")
 	}
