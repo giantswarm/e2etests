@@ -46,7 +46,7 @@
   version = "v1.4.2"
 
 [[projects]]
-  digest = "1:7b110591ce8ca4f6de189129c5dcd9bcd7525fa4ccc51be617fcdd77a83312c3"
+  digest = "1:b2c41a92204efb2f121ae92f4ddb607b7b80c6cbdbfe2dd2dbc6de53d0d54e9b"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -66,8 +66,10 @@
     "aws/request",
     "aws/session",
     "aws/signer/v4",
+    "internal/ini",
     "internal/sdkio",
     "internal/sdkrand",
+    "internal/sdkuri",
     "internal/shareddefaults",
     "private/protocol",
     "private/protocol/ec2query",
@@ -80,8 +82,8 @@
     "service/sts",
   ]
   pruneopts = "UT"
-  revision = "2fa5290a6a8f6a664f2dab5337d5f64d0cfd8f68"
-  version = "v1.14.7"
+  revision = "c0037b52736b07cea4e0cb6521f7995adef833bc"
+  version = "v1.15.59"
 
 [[projects]]
   branch = "master"
@@ -259,7 +261,7 @@
     "azure",
   ]
   pruneopts = "UT"
-  revision = "d467639908a92260877d2158bdc747d412040db9"
+  revision = "c8b43a3210e8ad7c334fd373b630f5d09861e24e"
 
 [[projects]]
   branch = "master"
@@ -271,11 +273,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3228a56c6d429de153928f005709174e3606fc5d97ecfea612cf33413aa5ded6"
+  digest = "1:d21741d89f652301bf41349044b59908fbfb5cddf0f40f1a461da5bd594ba5aa"
   name = "github.com/giantswarm/helmclient"
   packages = ["."]
   pruneopts = "UT"
-  revision = "cc5508a1d97cba484638bba1081a86a6f5a02ffa"
+  revision = "5e7a5b18adbe25ff81c9f300e4d9985d1674892f"
 
 [[projects]]
   branch = "master"
@@ -311,14 +313,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "9a4f3249a5b5a080d13f1db2580cf09ba5d14ca1"
-
-[[projects]]
-  digest = "1:15e27372d379b45b18ac917b9dafc45c45485239490ece18cca97a12f9591146"
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "9c8236e659b76e87bf02044d06fde8683008ff3e"
-  version = "v1.39.0"
 
 [[projects]]
   digest = "1:0cfcded8689c2c964c223650009c5dd9e283c22d57f18f2335aafa16cc22acf1"
@@ -412,11 +406,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:477593f0f2a9b84788c777582342ef5aab4fbcc23a48606e63a508bd5adda3c0"
+  digest = "1:8c90219e8a1f5f7cad019b77697aaae2b236db5a1a46ae688e5ede406e109182"
   name = "github.com/google/go-github"
   packages = ["github"]
   pruneopts = "UT"
-  revision = "aa7423eb79707e88352b2af2ff5fa5a4493f88c6"
+  revision = "68a79fc6a32bab9406083545e667a65ba67b0a3e"
 
 [[projects]]
   digest = "1:a63cff6b5d8b95638bfe300385d93b2a6d9d687734b863da8e09dc834510a690"
@@ -581,7 +575,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1261069fb38fbe59aba55117ee39c59814f211c027d66d59ed1c60e5c11b377c"
+  digest = "1:db712fde5d12d6cdbdf14b777f0c230f4ff5ab0be8e35b239fc319953ed577a4"
   name = "github.com/prometheus/common"
   packages = [
     "expfmt",
@@ -589,7 +583,7 @@
     "model",
   ]
   pruneopts = "UT"
-  revision = "16b4535ad14a9ef20a9d9fd8055143c5faa15224"
+  revision = "7e9e6cabbd393fc208072eedef99188d0ce788b6"
 
 [[projects]]
   branch = "master"
@@ -683,14 +677,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bececf436a23bf63181438c4ef4f7f47816b87ff879083d83ca1321f9001a354"
+  digest = "1:db09bef7e2c1a744c896d1f812eb7f08c1b13828edff7d7b6dd8a7f2e504e87f"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "8f1d3d21f81be6e86ebcd6febee89c89bc50719f"
+  revision = "8b8824e799c8fc8e6d900615cc6c761ce6c26c67"
 
 [[projects]]
   digest = "1:e5a8511f063c38c51ab9ab80e718e9149f692652aeb4e393a8c020dd1bf38ca2"
@@ -1127,11 +1121,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a2c842a1e0aed96fd732b535514556323a6f5edfded3b63e5e0ab1bce188aa54"
+  digest = "1:03a96603922fc1f6895ae083e1e16d943b55ef0656b56965351bd87e7d90485f"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/util/proto"]
   pruneopts = "UT"
-  revision = "e494cc58111187acad93e64529228a2fc0153e39"
+  revision = "90b54e673cf4f8ba61a75ad6ef90a69e8da13568"
 
 [[projects]]
   digest = "1:0cbc5b5dd9e675751a7f0b8cc4477f3900dbb31fed90c7793455a219d209ae25"
@@ -1300,7 +1294,7 @@
   name = "k8s.io/utils"
   packages = ["exec"]
   pruneopts = "UT"
-  revision = "a82851343d668ce8cdd50da9f8d565164fad6951"
+  revision = "5e321f9a457c397558d600ec8dc4ff4b13019a69"
 
 [[projects]]
   branch = "master"
