@@ -263,17 +263,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cfe37208b2d8b1f2fa1ca4101aa6036edbec369e48a49197b823623ef3d37a8d"
-  name = "github.com/giantswarm/e2etemplates"
-  packages = [
-    "internal/render",
-    "pkg/chartvalues",
-  ]
-  pruneopts = "UT"
-  revision = "33b1a1239b499d811a7bf4391264eb663943784d"
-
-[[projects]]
-  branch = "master"
   digest = "1:a880954e10c62b72dd4c6085d3a64d659b51c10116d2ceb17edbc483a5e4b101"
   name = "github.com/giantswarm/errors"
   packages = ["guest"]
@@ -298,11 +287,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:aff4157beb61837e21efdd4a73927fa85ceab4b21a80d1f00a092d535844c5ae"
+  digest = "1:62c8baabc50f891ea24bd0a9074056e8a92302c6010b66745cd4f748b8ad6545"
   name = "github.com/giantswarm/k8sportforward"
   packages = ["."]
   pruneopts = "UT"
-  revision = "3608d312c501d5f4e4390399c5e8a97866205e36"
+  revision = "8d59ac50659c3703f33a2e95dd5b5344449335dd"
 
 [[projects]]
   branch = "master"
@@ -669,7 +658,7 @@
     "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "bc7917b19d8f099105de72dc62898400be07c984"
+  revision = "4d3f4d9ffa16a13f451c3b2999e9c49e9750bf06"
 
 [[projects]]
   branch = "master"
@@ -710,14 +699,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a5090ea95e2600b2a369df77359c5871948f12bc8f0632db0342f5acc5e30c1d"
+  digest = "1:8b6c36c46245d5b3b0989843601823648281ca706a99dfffa0915083b9aa1b19"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "d69651ed3497faee15a5363a89578e9991f6d5e2"
+  revision = "f7626d0b1519d8323581a047ca8b372ebf28de9a"
 
 [[projects]]
   digest = "1:e5a8511f063c38c51ab9ab80e718e9149f692652aeb4e393a8c020dd1bf38ca2"
@@ -1353,7 +1342,6 @@
     "github.com/giantswarm/e2e-harness/pkg/framework/resource",
     "github.com/giantswarm/e2eclients/aws",
     "github.com/giantswarm/e2eclients/azure",
-    "github.com/giantswarm/e2etemplates/pkg/chartvalues",
     "github.com/giantswarm/helmclient",
     "github.com/giantswarm/ipam",
     "github.com/giantswarm/microerror",
