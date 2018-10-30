@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,11 +12,13 @@ import (
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
 	"k8s.io/helm/pkg/helm"
-
-	"github.com/giantswarm/e2e-harness/pkg/framework"
 )
 
-type ResourceConfig struct {
+const (
+	defaultNamespace = "default"
+)
+
+type Config struct {
 	ApprClient *apprclient.Client
 	HelmClient *helmclient.Client
 	Logger     micrologger.Logger
@@ -31,7 +34,7 @@ type Resource struct {
 	namespace string
 }
 
-func New(config ResourceConfig) (*Resource, error) {
+func New(config Config) (*Resource, error) {
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
@@ -59,7 +62,7 @@ func New(config ResourceConfig) (*Resource, error) {
 		return nil, microerror.Maskf(invalidConfigError, "%T.HelmClient must not be empty", config)
 	}
 	if config.Namespace == "" {
-		config.Namespace = "giantswarm"
+		config.Namespace = defaultNamespace
 	}
 	c := &Resource{
 		apprClient: config.ApprClient,
@@ -72,7 +75,39 @@ func New(config ResourceConfig) (*Resource, error) {
 	return c, nil
 }
 
-func (r *Resource) InstallResource(name, values, channel string, conditions ...func() error) error {
+func (r *Resource) Delete(name string) error {
+	err := r.helmClient.DeleteRelease(name, helm.DeletePurge(true))
+	if helmclient.IsReleaseNotFound(err) {
+		return microerror.Maskf(releaseNotFoundError, name)
+	} else if helmclient.IsTillerNotFound(err) {
+		return microerror.Mask(tillerNotFoundError)
+	} else if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+func (r *Resource) EnsureDeleted(ctx context.Context, name string) error {
+	r.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("ensuring deletion of release %#q", name))
+
+	err := r.helmClient.DeleteRelease(name, helm.DeletePurge(true))
+	if helmclient.IsReleaseNotFound(err) {
+		r.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("release %#q does not exist", name))
+	} else if helmclient.IsTillerNotFound(err) {
+		r.logger.LogCtx(ctx, "level", "warning", "message", "tiller is not found/installed")
+	} else if err != nil {
+		return microerror.Mask(err)
+	} else {
+		r.logger.LogCtx(ctx, "level", "info", "message", fmt.Sprintf("deleted release %#q", name))
+	}
+
+	r.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("ensured deletion of release %#q", name))
+
+	return nil
+}
+
+func (r *Resource) Install(name, values, channel string, conditions ...func() error) error {
 	chartname := fmt.Sprintf("%s-chart", name)
 
 	tarball, err := r.apprClient.PullChartTarball(chartname, channel)
@@ -85,7 +120,7 @@ func (r *Resource) InstallResource(name, values, channel string, conditions ...f
 	}
 
 	for _, c := range conditions {
-		err = backoff.Retry(c, backoff.NewExponential(framework.ShortMaxWait, framework.ShortMaxInterval))
+		err = backoff.Retry(c, backoff.NewExponential(backoff.ShortMaxWait, backoff.ShortMaxInterval))
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -94,7 +129,7 @@ func (r *Resource) InstallResource(name, values, channel string, conditions ...f
 	return nil
 }
 
-func (r *Resource) UpdateResource(name, values, channel string, conditions ...func() error) error {
+func (r *Resource) Update(name, values, channel string, conditions ...func() error) error {
 	chartname := fmt.Sprintf("%s-chart", name)
 
 	tarballPath, err := r.apprClient.PullChartTarball(chartname, channel)
@@ -129,7 +164,7 @@ func (r *Resource) WaitForStatus(release string, status string) error {
 		r.logger.Log("level", "debug", "message", fmt.Sprintf("failed to get release status '%s': retrying in %s", status, t), "stack", fmt.Sprintf("%v", err))
 	}
 
-	b := backoff.NewExponential(framework.ShortMaxWait, framework.LongMaxInterval)
+	b := backoff.NewExponential(backoff.MediumMaxWait, backoff.LongMaxInterval)
 	err := backoff.RetryNotify(operation, b, notify)
 	if err != nil {
 		return microerror.Mask(err)
@@ -153,7 +188,7 @@ func (r *Resource) WaitForVersion(release string, version string) error {
 		r.logger.Log("level", "debug", "message", fmt.Sprintf("failed to get release version '%s': retrying in %s", version, t), "stack", fmt.Sprintf("%v", err))
 	}
 
-	b := backoff.NewExponential(framework.ShortMaxWait, framework.LongMaxInterval)
+	b := backoff.NewExponential(backoff.ShortMaxWait, backoff.LongMaxInterval)
 	err := backoff.RetryNotify(operation, b, notify)
 	if err != nil {
 		return microerror.Mask(err)
