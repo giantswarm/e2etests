@@ -47,7 +47,7 @@ func New(config Config) (*IPAM, error) {
 		return nil, microerror.Maskf(invalidConfigError, "%T.HostClusterName must not be empty", config)
 	}
 
-	s := &IPAM{
+	i := &IPAM{
 		hostFramework: config.HostFramework,
 		logger:        config.Logger,
 		provider:      config.Provider,
@@ -56,30 +56,28 @@ func New(config Config) (*IPAM, error) {
 		hostClusterName: config.HostClusterName,
 	}
 
-	return s, nil
+	return i, nil
 }
 
-func (c *IPAM) Test(ctx context.Context) error {
-
+func (i *IPAM) Test(ctx context.Context) error {
 	var (
 		// Clusters to be created during this test.
-		clusterOne   = c.hostClusterName + "-cluster0"
-		clusterTwo   = c.hostClusterName + "-cluster1"
-		clusterThree = c.hostClusterName + "-cluster2"
-		clusterFour  = c.hostClusterName + "-cluster3"
+		clusterOne   = i.hostClusterName + "-cluster0"
+		clusterTwo   = i.hostClusterName + "-cluster1"
+		clusterThree = i.hostClusterName + "-cluster2"
+		clusterFour  = i.hostClusterName + "-cluster3"
 
 		// allocatedSubnets[clusterName]subnetCIDRStr
 		allocatedSubnets = make(map[string]string)
-		err              error
 		// guestFrameworks[clusterName]guestFramework
 		guestFrameworks = make(map[string]*framework.Guest)
 	)
 
 	defer func() {
 		for _, cn := range []string{clusterOne, clusterTwo, clusterThree, clusterFour} {
-			err := c.provider.DeleteCluster(cn)
+			err := i.provider.DeleteCluster(cn)
 			if err != nil {
-				c.logger.LogCtx(ctx, "level", "error", "message", fmt.Sprintf("cluster %s deletion failed", cn), "stack", fmt.Sprintf("%#v", err))
+				i.logger.LogCtx(ctx, "level", "error", "message", fmt.Sprintf("cluster %s deletion failed", cn), "stack", fmt.Sprintf("%#v", err))
 			}
 		}
 	}()
@@ -88,26 +86,26 @@ func (c *IPAM) Test(ctx context.Context) error {
 	clusters := []string{clusterOne, clusterTwo, clusterThree}
 
 	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("creating three guest clusters: %#v", clusters))
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("creating three guest clusters: %#v", clusters))
 
 		for _, cn := range clusters {
-			err = c.provider.CreateCluster(cn)
+			err := i.provider.CreateCluster(cn)
 			if err != nil {
 				return microerror.Mask(err)
 			}
-			c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("created guest cluster %s", cn))
+			i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("created guest cluster %s", cn))
 		}
 	}
 
 	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for three guest clusters to be ready: %#v", clusters))
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for three guest clusters to be ready: %#v", clusters))
 
 		for _, cn := range clusters {
 			cfg := framework.GuestConfig{
-				Logger: c.logger,
+				Logger: i.logger,
 
 				ClusterID:    cn,
-				CommonDomain: c.commonDomain,
+				CommonDomain: i.commonDomain,
 			}
 			guestFramework, err := framework.NewGuest(cfg)
 			if err != nil {
@@ -119,22 +117,22 @@ func (c *IPAM) Test(ctx context.Context) error {
 			if err != nil {
 				return microerror.Mask(err)
 			}
-			c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("guest cluster %s ready", cn))
+			i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("guest cluster %s ready", cn))
 		}
 
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("all three guest clusters are ready: %#v", clusters))
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("all three guest clusters are ready: %#v", clusters))
 	}
 
 	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", "verifying that subnet allocations don't overlap")
+		i.logger.LogCtx(ctx, "level", "debug", "message", "verifying that subnet allocations don't overlap")
 
 		for _, cn := range clusters {
-			awsConfig, err := c.hostFramework.AWSCluster(cn)
+			awsConfig, err := i.hostFramework.AWSCluster(cn)
 			if err != nil {
 				return microerror.Mask(err)
 			}
 
-			c.logger.LogCtx(ctx, "level", "debug", "message", "verify that there are no duplicate subnet allocations")
+			i.logger.LogCtx(ctx, "level", "debug", "message", "verify that there are no duplicate subnet allocations")
 			subnet := awsConfig.Status.Cluster.Network.CIDR
 			otherCluster, exists := allocatedSubnets[subnet]
 			if exists {
@@ -154,40 +152,40 @@ func (c *IPAM) Test(ctx context.Context) error {
 	}
 
 	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("terminating guest cluster %s and immediately creating new guest cluster %s", clusterTwo, clusterFour))
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("terminating guest cluster %s and immediately creating new guest cluster %s", clusterTwo, clusterFour))
 
-		err = c.provider.DeleteCluster(clusterTwo)
+		err := i.provider.DeleteCluster(clusterTwo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		err = c.provider.CreateCluster(clusterFour)
+		err = i.provider.CreateCluster(clusterFour)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 	}
 
 	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for guest cluster %s to shutdown", clusterTwo))
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for guest cluster %s to shutdown", clusterTwo))
 
 		guest := guestFrameworks[clusterTwo]
-		err = guest.WaitForAPIDown()
+		err := guest.WaitForAPIDown()
 		if err != nil {
 			return microerror.Mask(err)
 		}
 		delete(guestFrameworks, clusterTwo)
 
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("guest cluster %s down", clusterTwo))
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("guest cluster %s down", clusterTwo))
 	}
 
 	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for guest cluster %s to come up", clusterFour))
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for guest cluster %s to come up", clusterFour))
 
 		cfg := framework.GuestConfig{
-			Logger: c.logger,
+			Logger: i.logger,
 
 			ClusterID:    clusterFour,
-			CommonDomain: c.commonDomain,
+			CommonDomain: i.commonDomain,
 		}
 		guestFramework, err := framework.NewGuest(cfg)
 		if err != nil {
@@ -199,12 +197,14 @@ func (c *IPAM) Test(ctx context.Context) error {
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("guest cluster %s up", clusterFour))
+
+		i.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("guest cluster %s up", clusterFour))
 	}
 
 	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", "verify that clusterFour subnet doesn't overlap with other allocations")
-		awsConfig, err := c.hostFramework.AWSCluster(clusterFour)
+		i.logger.LogCtx(ctx, "level", "debug", "message", "verify that clusterFour subnet doesn't overlap with other allocations")
+
+		awsConfig, err := i.hostFramework.AWSCluster(clusterFour)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -223,7 +223,7 @@ func (c *IPAM) Test(ctx context.Context) error {
 		}
 	}
 
-	return err
+	return nil
 }
 
 func verifyNoOverlap(subnet1, subnet2 string) error {

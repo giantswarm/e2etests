@@ -162,7 +162,7 @@ func (aws *AWS) CreateCluster(clusterName string) error {
 
 		return nil
 	}
-	b := backoff.NewConstant(framework.ShortMaxWait, framework.ShortMaxInterval)
+	b := backoff.NewConstant(backoff.ShortMaxWait, backoff.ShortMaxInterval)
 	n := func(err error, delay time.Duration) {
 		log.Println("level", "debug", "message", err.Error())
 	}
@@ -203,7 +203,7 @@ func (aws *AWS) installCertResources(clusterName string) error {
 
 			return nil
 		}
-		b := backoff.NewExponential(framework.ShortMaxWait, framework.ShortMaxInterval)
+		b := backoff.NewExponential(backoff.ShortMaxWait, backoff.ShortMaxInterval)
 		n := backoff.NewNotifier(aws.logger, context.Background())
 		err := backoff.RetryNotify(o, b, n)
 		if err != nil {
@@ -225,7 +225,7 @@ func (aws *AWS) installCertResources(clusterName string) error {
 
 			return nil
 		}
-		b := backoff.NewExponential(framework.ShortMaxWait, framework.ShortMaxInterval)
+		b := backoff.NewExponential(backoff.ShortMaxWait, backoff.ShortMaxInterval)
 		n := func(err error, delay time.Duration) {
 			aws.logger.Log("level", "debug", "message", err.Error())
 		}
