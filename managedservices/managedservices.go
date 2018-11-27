@@ -146,7 +146,7 @@ func (ms *ManagedServices) Test(ctx context.Context) error {
 		if ms.chartConfig.RunReleaseTests {
 			ms.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
 
-			err = ms.helmClient.RunReleaseTest(ms.chartConfig.ChartName)
+			err = ms.helmClient.RunReleaseTest(ctx, ms.chartConfig.ChartName)
 			if err != nil {
 				return microerror.Mask(err)
 			}
