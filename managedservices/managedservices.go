@@ -200,7 +200,7 @@ func (ms *ManagedServices) checkDeployment(expectedDeployment Deployment) error 
 		return microerror.Maskf(invalidReplicasError, "expected %d replicas got: %d", expectedDeployment.Replicas, *ds.Spec.Replicas)
 	}
 
-	err = ms.checkLabels("deployment labels", expectedDeployment.Labels, ds.ObjectMeta.Labels)
+	err = ms.checkLabels("deployment labels", expectedDeployment.DeploymentLabels, ds.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -210,7 +210,7 @@ func (ms *ManagedServices) checkDeployment(expectedDeployment Deployment) error 
 		return microerror.Mask(err)
 	}
 
-	err = ms.checkLabels("deployment pod labels", expectedDeployment.Labels, ds.Spec.Template.ObjectMeta.Labels)
+	err = ms.checkLabels("deployment pod labels", expectedDeployment.PodLabels, ds.Spec.Template.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
