@@ -55,7 +55,7 @@ required = [
   name = "github.com/giantswarm/backoff"
 
 [[constraint]]
-  branch = "azure-sdks"
+  branch = "kubernetes-1.13.2"
   name = "github.com/giantswarm/e2eclients"
 
 [[override]]
