@@ -55,11 +55,11 @@ required = [
   name = "github.com/giantswarm/backoff"
 
 [[constraint]]
-  branch = "kubernetes-1.13.2"
+  branch = "master"
   name = "github.com/giantswarm/e2eclients"
 
-[[override]]
-  branch = "kubernetes-1.13.2"
+[[constraint]]
+  branch = "master"
   name = "github.com/giantswarm/e2e-harness"
 
 [[constraint]]
