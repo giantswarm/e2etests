@@ -30,7 +30,7 @@ type ManagedServices struct {
 	helmClient    *helmclient.Client
 	hostFramework *framework.Host
 	logger        micrologger.Logger
-	resource      *release.Release
+	release       *release.Release
 
 	chartConfig    ChartConfig
 	chartResources ChartResources
@@ -81,7 +81,7 @@ func New(config Config) (*ManagedServices, error) {
 		helmClient:    config.HelmClient,
 		hostFramework: config.HostFramework,
 		logger:        config.Logger,
-		resource:      resource,
+		release:       release,
 
 		chartConfig:    config.ChartConfig,
 		chartResources: config.ChartResources,
