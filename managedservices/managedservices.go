@@ -61,7 +61,7 @@ func New(config Config) (*ManagedServices, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	var release *release.Release
+	var r *release.Release
 	{
 		c := release.Config{
 			ApprClient: config.ApprClient,
@@ -70,7 +70,7 @@ func New(config Config) (*ManagedServices, error) {
 			Namespace:  config.ChartConfig.Namespace,
 		}
 
-		release, err = release.New(c)
+		r, err = release.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -81,7 +81,7 @@ func New(config Config) (*ManagedServices, error) {
 		helmClient:    config.HelmClient,
 		hostFramework: config.HostFramework,
 		logger:        config.Logger,
-		release:       release,
+		release:       r,
 
 		chartConfig:    config.ChartConfig,
 		chartResources: config.ChartResources,
