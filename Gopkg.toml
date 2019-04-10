@@ -35,14 +35,6 @@ required = [
 
 
 [[constraint]]
-  name = "github.com/aws/aws-sdk-go"
-  version = "=1.14.7"
-
-[[constraint]]
-  name = "github.com/Azure/azure-sdk-for-go"
-  version = "=v21.3.0"
-
-[[constraint]]
   branch = "master"
   name = "github.com/docker/distribution"
 
@@ -53,10 +45,6 @@ required = [
 [[constraint]]
   branch = "master"
   name = "github.com/giantswarm/backoff"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/giantswarm/e2eclients"
 
 [[constraint]]
   branch = "master"
