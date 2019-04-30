@@ -126,7 +126,7 @@
 
 [[projects]]
   branch = "remove-resource-package"
-  digest = "1:d84ee1fe2ff3eec5ae187b1ee2a9d6c38f90b78a0aebf55865d2ceecf968a395"
+  digest = "1:97ae63e957e49854dd943863944a7499b4e79e5147dc1d929404b680daed8039"
   name = "github.com/giantswarm/e2e-harness"
   packages = [
     "internal/filelogger",
@@ -135,7 +135,7 @@
     "pkg/release",
   ]
   pruneopts = "UT"
-  revision = "de1a02a71ef16e471caf451316d3271427737adb"
+  revision = "c7a0739cc89df6ea28504dc49e3521e29d5f7ff9"
 
 [[projects]]
   branch = "master"

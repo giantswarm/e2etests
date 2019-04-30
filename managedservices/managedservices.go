@@ -96,7 +96,7 @@ func (ms *ManagedServices) Test(ctx context.Context) error {
 	{
 		ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", ms.chartConfig.ChartName))
 
-		err = ms.release.Install(ctx, ms.chartConfig.ChartName, release.NewChannelVersion(ms.chartConfig.ChannelName), ms.chartConfig.ChartValues)
+		err = ms.release.Install(ctx, ms.chartConfig.ChartName, release.NewChannelChartInfo(ms.chartConfig.ChartName, ms.chartConfig.ChannelName), ms.chartConfig.ChartValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
