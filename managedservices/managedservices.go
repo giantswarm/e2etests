@@ -16,8 +16,8 @@ import (
 
 type Config struct {
 	ApprClient *apprclient.Client
-	HelmClient *helmclient.Client
 	Clients    Clients
+	HelmClient *helmclient.Client
 	Logger     micrologger.Logger
 
 	ChartConfig    ChartConfig
@@ -26,8 +26,8 @@ type Config struct {
 
 type ManagedServices struct {
 	apprClient *apprclient.Client
-	helmClient *helmclient.Client
 	clients    Clients
+	helmClient *helmclient.Client
 	logger     micrologger.Logger
 	resource   *frameworkresource.Resource
 
@@ -41,11 +41,11 @@ func New(config Config) (*ManagedServices, error) {
 	if config.ApprClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ApprClient must not be empty", config)
 	}
-	if config.Clients == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Clients must not be empty", config)
-	}
 	if config.HelmClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.HelmClient must not be empty", config)
+	}
+	if config.Clients == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Clients must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -77,8 +77,8 @@ func New(config Config) (*ManagedServices, error) {
 
 	ms := &ManagedServices{
 		apprClient: config.ApprClient,
-		helmClient: config.HelmClient,
 		clients:    config.Clients,
+		helmClient: config.HelmClient,
 		logger:     config.Logger,
 		resource:   resource,
 
