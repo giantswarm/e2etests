@@ -1,9 +1,11 @@
 package loadtest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/giantswarm/apprclient"
@@ -117,12 +119,12 @@ func (l *LoadTest) Test(ctx context.Context) error {
 		l.logger.LogCtx(ctx, "level", "debug", "message", "started loadtest job")
 	}
 
-	//var results []byte
+	var jsonResults []byte
 
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest job to complete")
 
-		_, err = l.WaitForLoadTestJob(ctx)
+		jsonResults, err = l.WaitForLoadTestJob(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -133,12 +135,10 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "checking loadtest results")
 
-		/* TODO Check results JSON.
-		err = l.CheckLoadTestResults(ctx, results)
+		err = l.CheckLoadTestResults(ctx, jsonResults)
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		*/
 
 		l.logger.LogCtx(ctx, "level", "debug", "message", "checked loadtest results")
 	}
@@ -146,7 +146,33 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	return nil
 }
 
-func (l *LoadTest) CheckLoadTestResults(ctx context.Context, podName string) error {
+func (l *LoadTest) CheckLoadTestResults(ctx context.Context, jsonResults []byte) error {
+	var err error
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", "checking loadtest results")
+
+	var prettyJSON bytes.Buffer
+
+	err = json.Indent(&prettyJSON, jsonResults, "", "\t")
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", prettyJSON.String())
+
+	var results LoadTestResults
+
+	err = json.Unmarshal(jsonResults, &results)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	apdexScore := results.Data.Attributes.BasicStatistics.Apdex75
+
+	if apdexScore < ApdexPassThreshold {
+		return microerror.Maskf(invalidExecutionError, "apdex score of %d is less than %d", apdexScore, ApdexPassThreshold)
+	}
+
 	return nil
 }
 
@@ -251,7 +277,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 	var podCount = 1
 	var podName = ""
 
-	l.logger.Log("level", "debug", "message", "waiting for loadtest job")
+	l.logger.Log("level", "debug", "message", "waiting for stormforger-cli job")
 
 	o := func() error {
 		lo := metav1.ListOptions{
@@ -269,10 +295,9 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 				podName = pod.Name
 
 				return nil
-			} else {
-				return microerror.Maskf(waitError, "want %#q pod found %#q", corev1.PodSucceeded, pod.Status.Phase)
 			}
 
+			return microerror.Maskf(waitError, "want %#q pod found %#q", corev1.PodSucceeded, pod.Status.Phase)
 		} else {
 			return microerror.Maskf(waitError, "want %d pods found %d", podCount, len(l.Items))
 		}
@@ -290,27 +315,25 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", "waited for loadtest job")
+	l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
 
-	/*
-		req := l.guestFramework.K8sClient().CoreV1().Pods(TestNamespace).GetLogs(podName, &corev1.PodLogOptions{})
+	req := l.guestFramework.K8sClient().CoreV1().Pods(LoadTestNamespace).GetLogs(podName, &corev1.PodLogOptions{})
 
-		readCloser, err := req.Stream()
-			if err != nil {
-				return nil, err
-			}
+	readCloser, err := req.Stream()
+	if err != nil {
+		return nil, err
+	}
 
-			out := io.Writer
+	defer readCloser.Close()
 
-			defer readCloser.Close()
+	buf := new(bytes.Buffer)
 
-			_, err := io.Copy(out, readCloser)
-			if err != nil {
-				return nil, err
-			}
-	*/
+	_, err = io.Copy(buf, readCloser)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	return buf.Bytes(), nil
 }
 
 func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValues []byte) error {
