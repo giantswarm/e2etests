@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/giantswarm/apprclient"
-	"github.com/giantswarm/e2e-harness/pkg/framework"
 	frameworkresource "github.com/giantswarm/e2e-harness/pkg/framework/resource"
 	"github.com/giantswarm/helmclient"
 	"github.com/giantswarm/microerror"
@@ -16,21 +15,21 @@ import (
 )
 
 type Config struct {
-	ApprClient    *apprclient.Client
-	HelmClient    *helmclient.Client
-	HostFramework *framework.Host
-	Logger        micrologger.Logger
+	ApprClient *apprclient.Client
+	Clients    Clients
+	HelmClient *helmclient.Client
+	Logger     micrologger.Logger
 
 	ChartConfig    ChartConfig
 	ChartResources ChartResources
 }
 
 type ManagedServices struct {
-	apprClient    *apprclient.Client
-	helmClient    *helmclient.Client
-	hostFramework *framework.Host
-	logger        micrologger.Logger
-	resource      *frameworkresource.Resource
+	apprClient *apprclient.Client
+	clients    Clients
+	helmClient *helmclient.Client
+	logger     micrologger.Logger
+	resource   *frameworkresource.Resource
 
 	chartConfig    ChartConfig
 	chartResources ChartResources
@@ -42,11 +41,11 @@ func New(config Config) (*ManagedServices, error) {
 	if config.ApprClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ApprClient must not be empty", config)
 	}
-	if config.HostFramework == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.HostFramework must not be empty", config)
-	}
 	if config.HelmClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.HelmClient must not be empty", config)
+	}
+	if config.Clients == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Clients must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -77,11 +76,11 @@ func New(config Config) (*ManagedServices, error) {
 	}
 
 	ms := &ManagedServices{
-		apprClient:    config.ApprClient,
-		helmClient:    config.HelmClient,
-		hostFramework: config.HostFramework,
-		logger:        config.Logger,
-		resource:      resource,
+		apprClient: config.ApprClient,
+		clients:    config.Clients,
+		helmClient: config.HelmClient,
+		logger:     config.Logger,
+		resource:   resource,
 
 		chartConfig:    config.ChartConfig,
 		chartResources: config.ChartResources,
@@ -162,7 +161,7 @@ func (ms *ManagedServices) Test(ctx context.Context) error {
 
 // checkDaemonSet ensures that key properties of the daemonset are correct.
 func (ms *ManagedServices) checkDaemonSet(expectedDaemonSet DaemonSet) error {
-	ds, err := ms.hostFramework.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
+	ds, err := ms.clients.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "daemonset %#q", expectedDaemonSet.Name)
 	} else if err != nil {
@@ -189,7 +188,7 @@ func (ms *ManagedServices) checkDaemonSet(expectedDaemonSet DaemonSet) error {
 
 // checkDeployment ensures that key properties of the deployment are correct.
 func (ms *ManagedServices) checkDeployment(expectedDeployment Deployment) error {
-	ds, err := ms.hostFramework.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
+	ds, err := ms.clients.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "deployment: %#q", expectedDeployment.Name)
 	} else if err != nil {
