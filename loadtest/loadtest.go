@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/helm"
 )
@@ -74,6 +75,14 @@ func (l *LoadTest) Test(ctx context.Context) error {
 
 		l.logger.Log("level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
 	}
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "enabling HPA for Nginx Ingress Controller")
+
+		/* TODO Update user values configmap and trigger chartconfig CR update.
+		 */
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "enabled HPA for Nginx Ingress Controller")
+	}
 
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest-app")
@@ -89,7 +98,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest-app to be ready")
 
-		err = l.CheckTestAppIsInstalled(ctx)
+		err = l.WaitForLoadTestApp(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -98,16 +107,46 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	}
 
 	{
-		l.logger.LogCtx(ctx, "level", "debug", "message", "starting load test")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "starting loadtest job")
 
-		err = l.StartLoadTest(ctx, loadTestEndpoint)
+		err = l.StartLoadTestJob(ctx, loadTestEndpoint)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		l.logger.LogCtx(ctx, "level", "debug", "message", "started load test")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "started loadtest job")
 	}
 
+	//var results []byte
+
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest job to complete")
+
+		_, err = l.WaitForLoadTestJob(ctx)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "loadtest job is complete")
+	}
+
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "checking loadtest results")
+
+		/* TODO Check results JSON.
+		err = l.CheckLoadTestResults(ctx, results)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		*/
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "checked loadtest results")
+	}
+
+	return nil
+}
+
+func (l *LoadTest) CheckLoadTestResults(ctx context.Context, podName string) error {
 	return nil
 }
 
@@ -140,7 +179,37 @@ func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) 
 	return nil
 }
 
-func (l *LoadTest) CheckTestAppIsInstalled(ctx context.Context) error {
+func (l *LoadTest) StartLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
+	var err error
+
+	var jsonValues []byte
+	{
+		values := LoadTestValues{
+			Auth: LoadTestValuesAuth{
+				Token: l.authToken,
+			},
+			Test: LoadTestValuesTest{
+				Endpoint: loadTestEndpoint,
+			},
+		}
+
+		jsonValues, err = json.Marshal(values)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	{
+		err = l.installChart(ctx, JobChartName, jsonValues)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	return nil
+}
+
+func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
 	var podCount = 1
 
 	l.logger.Log("level", "debug", "message", fmt.Sprintf("waiting for %d pods of the loadtest-app to be up", podCount))
@@ -170,39 +239,75 @@ func (l *LoadTest) CheckTestAppIsInstalled(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("found %d pods of the e2e-app", podCount))
+	l.logger.Log("level", "debug", "message", fmt.Sprintf("found %d pods of the loadtest-app", podCount))
 
 	return nil
 }
 
-func (l *LoadTest) StartLoadTest(ctx context.Context, loadTestEndpoint string) error {
-	var err error
+func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
+	var podCount = 1
+	var podName = ""
 
-	var jsonValues []byte
-	{
-		values := LoadTestValues{
-			Auth: LoadTestValuesAuth{
-				Token: l.authToken,
-			},
-			Test: LoadTestValuesTest{
-				Endpoint: loadTestEndpoint,
-			},
+	l.logger.Log("level", "debug", "message", "waiting for loadtest job")
+
+	o := func() error {
+		lo := metav1.ListOptions{
+			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
 		}
-
-		jsonValues, err = json.Marshal(values)
+		l, err := l.guestFramework.K8sClient().CoreV1().Pods(TestNamespace).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
-	}
 
-	{
-		err = l.installChart(ctx, JobChartName, jsonValues)
-		if err != nil {
-			return microerror.Mask(err)
+		if len(l.Items) == podCount {
+			pod := l.Items[0]
+
+			if pod.Status.Phase == corev1.PodSucceeded {
+				podName = pod.Name
+
+				return nil
+			} else {
+				return microerror.Maskf(waitError, "want %#q pod found %#q", corev1.PodSucceeded, pod.Status.Phase)
+			}
+
+		} else {
+			return microerror.Maskf(waitError, "want %d pods found %d", podCount, len(l.Items))
 		}
+
+		return nil
 	}
 
-	return nil
+	b := backoff.NewConstant(backoff.ShortMaxWait, backoff.ShortMaxInterval)
+	n := func(err error, delay time.Duration) {
+		l.logger.Log("level", "debug", "message", err.Error())
+	}
+
+	err := backoff.RetryNotify(o, b, n)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	l.logger.Log("level", "debug", "message", "waited for loadtest job")
+
+	/*
+		req := l.guestFramework.K8sClient().CoreV1().Pods(TestNamespace).GetLogs(podName, &corev1.PodLogOptions{})
+
+		readCloser, err := req.Stream()
+			if err != nil {
+				return nil, err
+			}
+
+			out := io.Writer
+
+			defer readCloser.Close()
+
+			_, err := io.Copy(out, readCloser)
+			if err != nil {
+				return nil, err
+			}
+	*/
+
+	return nil, nil
 }
 
 func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValues []byte) error {
