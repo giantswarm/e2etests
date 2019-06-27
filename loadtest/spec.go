@@ -5,11 +5,12 @@ import (
 )
 
 const (
+	AppChartName    = "loadtest-app-chart"
 	CNRAddress      = "https://quay.io"
 	CNROrganization = "giantswarm"
 	ChartChannel    = "stable"
-	ChartName       = "loadtest-app-chart"
 	ChartNamespace  = "e2e-app"
+	JobChartName    = "stormforger-cli"
 )
 
 type Interface interface {

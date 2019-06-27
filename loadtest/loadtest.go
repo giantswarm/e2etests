@@ -62,10 +62,17 @@ func New(config Config) (*LoadTest, error) {
 func (l *LoadTest) Test(ctx context.Context) error {
 	var err error
 
+	var loadTestEndpoint string
+	{
+		loadTestEndpoint = fmt.Sprintf("loadtest-app.%s.%s", l.clusterID, l.commonDomain)
+
+		l.logger.Log("level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
+	}
+
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest-app")
 
-		err = l.InstallTestApp(ctx)
+		err = l.InstallTestApp(ctx, loadTestEndpoint)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -84,10 +91,112 @@ func (l *LoadTest) Test(ctx context.Context) error {
 		l.logger.LogCtx(ctx, "level", "debug", "message", "loadtest-app is ready")
 	}
 
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "starting load test")
+
+		err = l.StartLoadTest(ctx, loadTestEndpoint)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "started load test")
+	}
+
 	return nil
 }
 
-func (l *LoadTest) InstallTestApp(ctx context.Context) error {
+func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) error {
+	var err error
+
+	var jsonValues []byte
+	{
+		values := LoadTestApp{
+			Ingress: LoadTestAppIngress{
+				Hosts: []string{
+					loadTestEndpoint,
+				},
+			},
+		}
+
+		jsonValues, err = json.Marshal(values)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	{
+		err = l.installChart(ctx, AppChartName, jsonValues)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	return nil
+}
+
+func (l *LoadTest) CheckTestAppIsInstalled(ctx context.Context) error {
+	var podCount = 1
+
+	l.logger.Log("level", "debug", "message", fmt.Sprintf("waiting for %d pods of the loadtest-app to be up", podCount))
+
+	o := func() error {
+		lo := metav1.ListOptions{
+			LabelSelector: "app.kubernetes.io/name=testapp-chart",
+		}
+		l, err := l.guestFramework.K8sClient().CoreV1().Pods("test").List(lo)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		if len(l.Items) != podCount {
+			return microerror.Maskf(waitError, "want %d pods found %d", podCount, len(l.Items))
+		}
+
+		return nil
+	}
+
+	b := backoff.NewConstant(backoff.ShortMaxWait, backoff.ShortMaxInterval)
+	n := func(err error, delay time.Duration) {
+		l.logger.Log("level", "debug", "message", err.Error())
+	}
+
+	err := backoff.RetryNotify(o, b, n)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	l.logger.Log("level", "debug", "message", fmt.Sprintf("found %d pods of the e2e-app", podCount))
+
+	return nil
+}
+
+func (l *LoadTest) StartLoadTest(ctx context.Context, loadTestEndpoint string) error {
+	var err error
+
+	var jsonValues []byte
+	{
+		values := LoadTestValues{
+			Test: LoadTestValuesTest{
+				Endpoint: loadTestEndpoint,
+			},
+		}
+
+		jsonValues, err = json.Marshal(values)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	{
+		err = l.installChart(ctx, JobChartName, jsonValues)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	return nil
+}
+
+func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValues []byte) error {
 	var err error
 
 	var apprClient *apprclient.Client
@@ -126,34 +235,11 @@ func (l *LoadTest) InstallTestApp(ctx context.Context) error {
 		}
 	}
 
-	var loadTestEndpoint string
-	{
-		loadTestEndpoint = fmt.Sprintf("testapp.%s.%s", l.clusterID, l.commonDomain)
-
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
-	}
-
-	var jsonValues []byte
-	{
-		values := LoadTestApp{
-			Ingress: LoadTestAppIngress{
-				Hosts: []string{
-					loadTestEndpoint,
-				},
-			},
-		}
-
-		jsonValues, err = json.Marshal(values)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
 	// Install the e2e app chart in the tenant cluster.
 	{
 		l.logger.Log("level", "debug", "message", "installing loadtest-app for testing")
 
-		tarballPath, err := apprClient.PullChartTarball(ctx, ChartName, ChartChannel)
+		tarballPath, err := apprClient.PullChartTarball(ctx, chartName, ChartChannel)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -165,41 +251,6 @@ func (l *LoadTest) InstallTestApp(ctx context.Context) error {
 
 		l.logger.Log("level", "debug", "message", "installed loadtest-app for testing")
 	}
-
-	return nil
-}
-
-func (l *LoadTest) CheckTestAppIsInstalled(ctx context.Context) error {
-	var podCount = 1
-
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("waiting for %d pods of the loadtest-app to be up", podCount))
-
-	o := func() error {
-		lo := metav1.ListOptions{
-			LabelSelector: "app.kubernetes.io/name=testapp-chart",
-		}
-		l, err := l.guestFramework.K8sClient().CoreV1().Pods("test").List(lo)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-		if len(l.Items) != podCount {
-			return microerror.Maskf(waitError, "want %d pods found %d", podCount, len(l.Items))
-		}
-
-		return nil
-	}
-
-	b := backoff.NewConstant(backoff.ShortMaxWait, backoff.ShortMaxInterval)
-	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
-	}
-
-	err := backoff.RetryNotify(o, b, n)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("found %d pods of the e2e-app", podCount))
 
 	return nil
 }
