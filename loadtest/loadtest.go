@@ -21,6 +21,7 @@ type Config struct {
 	GuestFramework *framework.Guest
 	Logger         micrologger.Logger
 
+	AuthToken    string
 	ClusterID    string
 	CommonDomain string
 }
@@ -29,6 +30,7 @@ type LoadTest struct {
 	guestFramework *framework.Guest
 	logger         micrologger.Logger
 
+	authToken    string
 	clusterID    string
 	commonDomain string
 }
@@ -41,6 +43,9 @@ func New(config Config) (*LoadTest, error) {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
 
+	if config.AuthToken == "" {
+		return nil, microerror.Maskf(invalidConfigError, "%T.AuthToken must not be empty", config)
+	}
 	if config.ClusterID == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ClusterID must not be empty", config)
 	}
@@ -52,6 +57,7 @@ func New(config Config) (*LoadTest, error) {
 		guestFramework: config.GuestFramework,
 		logger:         config.Logger,
 
+		authToken:    config.AuthToken,
 		clusterID:    config.ClusterID,
 		commonDomain: config.CommonDomain,
 	}
@@ -175,6 +181,9 @@ func (l *LoadTest) StartLoadTest(ctx context.Context, loadTestEndpoint string) e
 	var jsonValues []byte
 	{
 		values := LoadTestValues{
+			Auth: LoadTestValuesAuth{
+				Token: l.authToken,
+			},
 			Test: LoadTestValuesTest{
 				Endpoint: loadTestEndpoint,
 			},

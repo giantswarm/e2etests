@@ -9,7 +9,12 @@ type LoadTestAppIngress struct {
 }
 
 type LoadTestValues struct {
+	Auth LoadTestValuesAuth `json:"auth"`
 	Test LoadTestValuesTest `json:"test"`
+}
+
+type LoadTestValuesAuth struct {
+	Token string `json:"token"`
 }
 
 type LoadTestValuesTest struct {
