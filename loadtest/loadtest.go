@@ -352,9 +352,9 @@ func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValue
 		}
 	}
 
-	// Install the e2e app chart in the tenant cluster.
+	// Install the chart in the tenant cluster.
 	{
-		l.logger.Log("level", "debug", "message", "installing loadtest-app for testing")
+		l.logger.Log("level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
 
 		tarballPath, err := apprClient.PullChartTarball(ctx, chartName, ChartChannel)
 		if err != nil {
@@ -366,7 +366,7 @@ func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValue
 			return microerror.Mask(err)
 		}
 
-		l.logger.Log("level", "debug", "message", "installed loadtest-app for testing")
+		l.logger.Log("level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
 	}
 
 	return nil
