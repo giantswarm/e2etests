@@ -210,20 +210,23 @@ func (l *LoadTest) StartLoadTestJob(ctx context.Context, loadTestEndpoint string
 }
 
 func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
-	var podCount = 1
-
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("waiting for %d pods of the loadtest-app to be up", podCount))
+	l.logger.Log("level", "debug", "message", "waiting for loadtest-app deployment to be ready")
 
 	o := func() error {
 		lo := metav1.ListOptions{
-			LabelSelector: "app.kubernetes.io/name=testapp-chart",
+			LabelSelector: "app.kubernetes.io/name=loadtest-app",
 		}
-		l, err := l.guestFramework.K8sClient().CoreV1().Pods("test").List(lo)
+		l, err := l.guestFramework.K8sClient().AppsV1().Deployments(LoadTestNamespace).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		if len(l.Items) != podCount {
-			return microerror.Maskf(waitError, "want %d pods found %d", podCount, len(l.Items))
+		if len(l.Items) != 1 {
+			return microerror.Maskf(waitError, "want %d deployments found %d", 1, len(l.Items))
+		}
+
+		deploy := l.Items[0]
+		if *deploy.Spec.Replicas == deploy.Status.ReadyReplicas {
+			return microerror.Maskf(waitError, "want %d ready pods found %d", deploy.Spec.Replicas, deploy.Status.ReadyReplicas)
 		}
 
 		return nil
@@ -239,7 +242,7 @@ func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("found %d pods of the loadtest-app", podCount))
+	l.logger.Log("level", "debug", "message", "waited for loadtest-app deployment to be ready")
 
 	return nil
 }
@@ -254,7 +257,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
 		}
-		l, err := l.guestFramework.K8sClient().CoreV1().Pods(TestNamespace).List(lo)
+		l, err := l.guestFramework.K8sClient().CoreV1().Pods(LoadTestNamespace).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}

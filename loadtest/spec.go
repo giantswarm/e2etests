@@ -5,13 +5,13 @@ import (
 )
 
 const (
-	AppChartName    = "loadtest-app-chart"
-	CNRAddress      = "https://quay.io"
-	CNROrganization = "giantswarm"
-	ChartChannel    = "stable"
-	ChartNamespace  = "e2e-app"
-	JobChartName    = "stormforger-cli"
-	TestNamespace   = "test"
+	AppChartName      = "loadtest-app-chart"
+	CNRAddress        = "https://quay.io"
+	CNROrganization   = "giantswarm"
+	ChartChannel      = "stable"
+	ChartNamespace    = "e2e-app"
+	JobChartName      = "stormforger-cli-chart"
+	LoadTestNamespace = "loadtest"
 )
 
 type Interface interface {
