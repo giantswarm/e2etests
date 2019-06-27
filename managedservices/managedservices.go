@@ -6,12 +6,13 @@ import (
 	"reflect"
 
 	"github.com/giantswarm/apprclient"
-	frameworkresource "github.com/giantswarm/e2e-harness/pkg/framework/resource"
 	"github.com/giantswarm/helmclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/giantswarm/e2etests/managedservices/legacyresource"
 )
 
 type Config struct {
@@ -29,7 +30,7 @@ type ManagedServices struct {
 	clients    Clients
 	helmClient *helmclient.Client
 	logger     micrologger.Logger
-	resource   *frameworkresource.Resource
+	resource   *legacyresource.Resource
 
 	chartConfig    ChartConfig
 	chartResources ChartResources
@@ -60,16 +61,16 @@ func New(config Config) (*ManagedServices, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	var resource *frameworkresource.Resource
+	var resource *legacyresource.Resource
 	{
-		c := frameworkresource.Config{
+		c := legacyresource.Config{
 			ApprClient: config.ApprClient,
 			HelmClient: config.HelmClient,
 			Logger:     config.Logger,
 			Namespace:  config.ChartConfig.Namespace,
 		}
 
-		resource, err = frameworkresource.New(c)
+		resource, err = legacyresource.New(c)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
