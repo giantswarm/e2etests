@@ -20,7 +20,7 @@ import (
 )
 
 type Config struct {
-	Clients Clients
+	Clients *Clients
 	Logger  micrologger.Logger
 
 	AuthToken    string
@@ -30,7 +30,7 @@ type Config struct {
 
 type LoadTest struct {
 	logger  micrologger.Logger
-	clients Clients
+	clients *Clients
 
 	authToken    string
 	clusterID    string
@@ -195,7 +195,7 @@ func (l *LoadTest) InstallLoadTestJob(ctx context.Context, loadTestEndpoint stri
 	}
 
 	{
-		err = l.installChart(ctx, l.clients.ControlPlaneHelmClient(), JobChartName, jsonValues)
+		err = l.installChart(ctx, l.clients.ControlPlaneHelmClient, JobChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -224,7 +224,7 @@ func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) 
 	}
 
 	{
-		err = l.installChart(ctx, l.clients.TenantHelmClient(), AppChartName, jsonValues)
+		err = l.installChart(ctx, l.clients.TenantHelmClient, AppChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -240,7 +240,7 @@ func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=loadtest-app",
 		}
-		l, err := l.clients.TenantK8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
+		l, err := l.clients.TenantK8sClient.AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -282,7 +282,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 			FieldSelector: "status.Phase=Succeeded",
 			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
 		}
-		l, err := l.clients.ControlPlaneK8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
+		l, err := l.clients.ControlPlaneK8sClient.CoreV1().Pods(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -308,7 +308,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 
 	l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
 
-	req := l.clients.ControlPlaneK8sClient().CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
+	req := l.clients.ControlPlaneK8sClient.CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
 
 	readCloser, err := req.Stream()
 	if err != nil {
