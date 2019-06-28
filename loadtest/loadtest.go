@@ -76,35 +76,32 @@ func (l *LoadTest) Test(ctx context.Context) error {
 
 		l.logger.Log("level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
 	}
-	{
-		l.logger.LogCtx(ctx, "level", "debug", "message", "enabling HPA for Nginx Ingress Controller")
 
+	{
 		/* TODO Update user values configmap and trigger chartconfig CR update.
 		 */
-
-		l.logger.LogCtx(ctx, "level", "debug", "message", "enabled HPA for Nginx Ingress Controller")
 	}
 
 	{
-		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest-app")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest app")
 
 		err = l.InstallTestApp(ctx, loadTestEndpoint)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		l.logger.LogCtx(ctx, "level", "debug", "message", "installed loadtest-app")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "installed loadtest app")
 	}
 
 	{
-		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest-app to be ready")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest app to be ready")
 
 		err = l.WaitForLoadTestApp(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		l.logger.LogCtx(ctx, "level", "debug", "message", "loadtest-app is ready")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "loadtest app is ready")
 	}
 
 	{
@@ -169,8 +166,10 @@ func (l *LoadTest) CheckLoadTestResults(ctx context.Context, jsonResults []byte)
 	apdexScore := results.Data.Attributes.BasicStatistics.Apdex75
 
 	if apdexScore < ApdexPassThreshold {
-		return microerror.Maskf(invalidExecutionError, "apdex score of %d is less than %d", apdexScore, ApdexPassThreshold)
+		return microerror.Maskf(invalidExecutionError, "apdex score of %f is less than %f", apdexScore, ApdexPassThreshold)
 	}
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("load test passed: apdex score of %f is >= %f", apdexScore, ApdexPassThreshold))
 
 	return nil
 }
@@ -257,7 +256,7 @@ func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
 		return nil
 	}
 
-	b := backoff.NewConstant(backoff.ShortMaxWait, backoff.ShortMaxInterval)
+	b := backoff.NewConstant(2*time.Minute, 15*time.Second)
 	n := func(err error, delay time.Duration) {
 		l.logger.Log("level", "debug", "message", err.Error())
 	}
@@ -280,6 +279,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 
 	o := func() error {
 		lo := metav1.ListOptions{
+			FieldSelector: "status.Phase=Succeeded",
 			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
 		}
 		l, err := l.clients.ControlPlaneK8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
@@ -288,23 +288,15 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 		}
 
 		if len(l.Items) == podCount {
-			pod := l.Items[0]
+			podName = l.Items[0].Name
 
-			if pod.Status.Phase == corev1.PodSucceeded {
-				podName = pod.Name
-
-				return nil
-			}
-
-			return microerror.Maskf(waitError, "want %#q pod found %#q", corev1.PodSucceeded, pod.Status.Phase)
-		} else {
-			return microerror.Maskf(waitError, "want %d pods found %d", podCount, len(l.Items))
+			return nil
 		}
 
-		return nil
+		return microerror.Maskf(waitError, "want %d Succeeded pods found %d", podCount, len(l.Items))
 	}
 
-	b := backoff.NewConstant(backoff.ShortMaxWait, backoff.ShortMaxInterval)
+	b := backoff.NewConstant(20*time.Minute, 30*time.Second)
 	n := func(err error, delay time.Duration) {
 		l.logger.Log("level", "debug", "message", err.Error())
 	}
