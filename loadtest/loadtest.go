@@ -109,14 +109,14 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	}
 
 	{
-		l.logger.LogCtx(ctx, "level", "debug", "message", "starting loadtest job")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest job")
 
-		err = l.StartLoadTestJob(ctx, loadTestEndpoint)
+		err = l.InstallLoadTestJob(ctx, loadTestEndpoint)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		l.logger.LogCtx(ctx, "level", "debug", "message", "started loadtest job")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "installed loadtest job")
 	}
 
 	var jsonResults []byte
@@ -176,36 +176,7 @@ func (l *LoadTest) CheckLoadTestResults(ctx context.Context, jsonResults []byte)
 	return nil
 }
 
-func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) error {
-	var err error
-
-	var jsonValues []byte
-	{
-		values := LoadTestApp{
-			Ingress: LoadTestAppIngress{
-				Hosts: []string{
-					loadTestEndpoint,
-				},
-			},
-		}
-
-		jsonValues, err = json.Marshal(values)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	{
-		err = l.installChart(ctx, AppChartName, jsonValues)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	return nil
-}
-
-func (l *LoadTest) StartLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
+func (l *LoadTest) InstallLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
 	var err error
 
 	var jsonValues []byte
@@ -227,6 +198,35 @@ func (l *LoadTest) StartLoadTestJob(ctx context.Context, loadTestEndpoint string
 
 	{
 		err = l.installChart(ctx, JobChartName, jsonValues)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	return nil
+}
+
+func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) error {
+	var err error
+
+	var jsonValues []byte
+	{
+		values := LoadTestApp{
+			Ingress: LoadTestAppIngress{
+				Hosts: []string{
+					loadTestEndpoint,
+				},
+			},
+		}
+
+		jsonValues, err = json.Marshal(values)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	{
+		err = l.installChart(ctx, AppChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
