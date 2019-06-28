@@ -87,17 +87,6 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	}
 
 	{
-		l.logger.LogCtx(ctx, "level", "debug", "message", "creating namespace")
-
-		err = l.CreateNamespace(ctx)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		l.logger.LogCtx(ctx, "level", "debug", "message", "created namespace")
-	}
-
-	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest-app")
 
 		err = l.InstallTestApp(ctx, loadTestEndpoint)
@@ -187,25 +176,6 @@ func (l *LoadTest) CheckLoadTestResults(ctx context.Context, jsonResults []byte)
 	return nil
 }
 
-func (l *LoadTest) CreateNamespace(ctx context.Context) error {
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("creating namespace %#q", LoadTestNamespace))
-
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: LoadTestNamespace,
-		},
-	}
-
-	_, err := l.guestFramework.K8sClient().CoreV1().Namespaces().Create(ns)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("created namespace %#q", LoadTestNamespace))
-
-	return nil
-}
-
 func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) error {
 	var err error
 
@@ -272,7 +242,7 @@ func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=loadtest-app",
 		}
-		l, err := l.guestFramework.K8sClient().AppsV1().Deployments(LoadTestNamespace).List(lo)
+		l, err := l.guestFramework.K8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -313,7 +283,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
 		}
-		l, err := l.guestFramework.K8sClient().CoreV1().Pods(LoadTestNamespace).List(lo)
+		l, err := l.guestFramework.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -347,7 +317,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 
 	l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
 
-	req := l.guestFramework.K8sClient().CoreV1().Pods(LoadTestNamespace).GetLogs(podName, &corev1.PodLogOptions{})
+	req := l.guestFramework.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
 
 	readCloser, err := req.Stream()
 	if err != nil {
