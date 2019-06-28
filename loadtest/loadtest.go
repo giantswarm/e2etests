@@ -10,7 +10,6 @@ import (
 
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/backoff"
-	"github.com/giantswarm/e2e-harness/pkg/framework"
 	"github.com/giantswarm/helmclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -21,8 +20,8 @@ import (
 )
 
 type Config struct {
-	GuestFramework *framework.Guest
-	Logger         micrologger.Logger
+	Clients Clients
+	Logger  micrologger.Logger
 
 	AuthToken    string
 	ClusterID    string
@@ -30,8 +29,8 @@ type Config struct {
 }
 
 type LoadTest struct {
-	guestFramework *framework.Guest
-	logger         micrologger.Logger
+	logger  micrologger.Logger
+	clients Clients
 
 	authToken    string
 	clusterID    string
@@ -39,8 +38,8 @@ type LoadTest struct {
 }
 
 func New(config Config) (*LoadTest, error) {
-	if config.GuestFramework == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.GuestFramework must not be empty", config)
+	if config.Clients == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.Clients must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -57,8 +56,8 @@ func New(config Config) (*LoadTest, error) {
 	}
 
 	s := &LoadTest{
-		guestFramework: config.GuestFramework,
-		logger:         config.Logger,
+		clients: config.Clients,
+		logger:  config.Logger,
 
 		authToken:    config.AuthToken,
 		clusterID:    config.ClusterID,
@@ -197,7 +196,7 @@ func (l *LoadTest) InstallLoadTestJob(ctx context.Context, loadTestEndpoint stri
 	}
 
 	{
-		err = l.installChart(ctx, JobChartName, jsonValues)
+		err = l.installChart(ctx, l.clients.ControlPlaneHelmClient(), JobChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -226,7 +225,7 @@ func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) 
 	}
 
 	{
-		err = l.installChart(ctx, AppChartName, jsonValues)
+		err = l.installChart(ctx, l.clients.TenantHelmClient(), AppChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -242,7 +241,7 @@ func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=loadtest-app",
 		}
-		l, err := l.guestFramework.K8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
+		l, err := l.clients.TenantK8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -283,7 +282,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
 		}
-		l, err := l.guestFramework.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
+		l, err := l.clients.ControlPlaneK8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -317,7 +316,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 
 	l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
 
-	req := l.guestFramework.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
+	req := l.clients.ControlPlaneK8sClient().CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
 
 	readCloser, err := req.Stream()
 	if err != nil {
@@ -336,7 +335,7 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValues []byte) error {
+func (l *LoadTest) installChart(ctx context.Context, helmClient helmclient.Interface, chartName string, jsonValues []byte) error {
 	var err error
 
 	var apprClient *apprclient.Client
@@ -355,27 +354,6 @@ func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValue
 		}
 	}
 
-	var helmClient *helmclient.Client
-	{
-		c := helmclient.Config{
-			Logger:    l.logger,
-			K8sClient: l.guestFramework.K8sClient(),
-
-			RestConfig: l.guestFramework.RestConfig(),
-		}
-
-		helmClient, err = helmclient.New(c)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		err = helmClient.EnsureTillerInstalled(ctx)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	// Install the chart in the tenant cluster.
 	{
 		l.logger.Log("level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
 

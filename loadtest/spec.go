@@ -2,6 +2,9 @@ package loadtest
 
 import (
 	"context"
+
+	"github.com/giantswarm/helmclient"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -14,6 +17,13 @@ const (
 	ChartNamespace     = "e2e-app"
 	JobChartName       = "stormforger-cli-chart"
 )
+
+type Clients interface {
+	ControlPlaneHelmClient() helmclient.Interface
+	ControlPlaneK8sClient() kubernetes.Interface
+	TenantHelmClient() helmclient.Interface
+	TenantK8sClient() kubernetes.Interface
+}
 
 type Interface interface {
 	// Test executes the loadtest test that checks that tenant cluster
