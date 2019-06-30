@@ -77,7 +77,7 @@ func Test_LoadTest_CheckLoadTestResults(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err = l.CheckLoadTestResults(ctx, []byte(tc.results))
+			err = l.checkLoadTestResults(ctx, []byte(tc.results))
 
 			switch {
 			case err != nil && tc.errorMatcher == nil:
