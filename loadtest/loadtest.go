@@ -128,6 +128,35 @@ func (l *LoadTest) Test(ctx context.Context) error {
 func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 	var err error
 
+	l.logger.Log("level", "debug", "message", fmt.Sprintf("waiting for %#q configmap to be created", UserConfigMapName))
+
+	o := func() error {
+		lo := metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("app=%s,cluster-operator.giantswarm.io/configmap-type=user", UserConfigMapName),
+		}
+		l, err := l.guestFramework.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceDefault).List(lo)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		if len(l.Items) != 1 {
+			return microerror.Maskf(waitError, "want %d configmaps found %d", 1, len(l.Items))
+		}
+
+		return nil
+	}
+
+	b := backoff.NewConstant(10*time.Minute, 15*time.Second)
+	n := func(err error, delay time.Duration) {
+		l.logger.Log("level", "debug", "message", err.Error())
+	}
+
+	err = backoff.RetryNotify(o, b, n)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	l.logger.Log("level", "debug", "message", fmt.Sprintf("waited for %#q configmap to be created", UserConfigMapName))
+
 	values := UserConfigMapValues{
 		Data: UserConfigMapValuesData{
 			AutoscalingEnabled: true,
