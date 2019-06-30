@@ -8,6 +8,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/e2e-harness/pkg/framework"
@@ -15,8 +16,10 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
+	yaml "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/helm/pkg/helm"
 )
 
@@ -88,8 +91,14 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	}
 
 	{
-		/* TODO Update user values configmap and trigger chartconfig CR update.
-		 */
+		l.logger.LogCtx(ctx, "level", "debug", "message", "enabling HPA for Nginx Ingress Controller")
+
+		err = l.enableIngressControllerHPA(ctx)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "enabled HPA for Nginx Ingress Controller")
 	}
 
 	{
@@ -179,6 +188,51 @@ func (l *LoadTest) checkLoadTestResults(ctx context.Context, jsonResults []byte)
 	return nil
 }
 
+// enableIngressControllerHPA enables HPA via the user configmap and updates
+// the chartconfig CR so chart-operator reconciles the config change.
+func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
+	var err error
+
+	values := UserConfigMapValues{
+		Data: UserConfigMapValuesData{
+			AutoscalingEnabled: true,
+		},
+	}
+
+	var data []byte
+
+	data, err = yaml.Marshal(values)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	_, err = l.guestFramework.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceSystem).Patch(UserConfigMapName, types.StrategicMergePatchType, data)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	var cr *v1alpha1.ChartConfig
+
+	cr, err = l.guestFramework.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Get(CustomResourceName, metav1.GetOptions{})
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	annotations := cr.Annotations
+	annotations["test"] = "test"
+	cr.SetAnnotations(annotations)
+
+	_, err = l.guestFramework.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Update(cr)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+// installLoadTestJob installs a chart that creates a job that uses the
+// Stormforger CLI to trigger the load test.
+func (l *LoadTest) installLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
 	var err error
 
 	var jsonValues []byte
