@@ -49,4 +49,7 @@ type LoadTestValuesAuth struct {
 
 type LoadTestValuesTest struct {
 	Endpoint string `json:"endpoint"`
+	Name     string `json:"name"`
+}
+
 }

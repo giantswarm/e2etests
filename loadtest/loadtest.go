@@ -95,7 +95,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest app")
 
-		err = l.InstallTestApp(ctx, loadTestEndpoint)
+		err = l.installTestApp(ctx, loadTestEndpoint)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -106,7 +106,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest app to be ready")
 
-		err = l.WaitForLoadTestApp(ctx)
+		err = l.waitForLoadTestApp(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -117,7 +117,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest job")
 
-		err = l.InstallLoadTestJob(ctx, loadTestEndpoint)
+		err = l.installLoadTestJob(ctx, loadTestEndpoint)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -130,7 +130,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest job to complete")
 
-		jsonResults, err = l.WaitForLoadTestJob(ctx)
+		jsonResults, err = l.waitForLoadTestJob(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -141,7 +141,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", "checking loadtest results")
 
-		err = l.CheckLoadTestResults(ctx, jsonResults)
+		err = l.checkLoadTestResults(ctx, jsonResults)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -152,7 +152,9 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	return nil
 }
 
-func (l *LoadTest) CheckLoadTestResults(ctx context.Context, jsonResults []byte) error {
+// checkLoadTestResults parses the load test results JSON and determines if the
+// test was successful or not.
+func (l *LoadTest) checkLoadTestResults(ctx context.Context, jsonResults []byte) error {
 	var err error
 
 	l.logger.LogCtx(ctx, "level", "debug", "message", "checking loadtest results")
@@ -177,7 +179,6 @@ func (l *LoadTest) CheckLoadTestResults(ctx context.Context, jsonResults []byte)
 	return nil
 }
 
-func (l *LoadTest) InstallLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
 	var err error
 
 	var jsonValues []byte
@@ -188,6 +189,7 @@ func (l *LoadTest) InstallLoadTestJob(ctx context.Context, loadTestEndpoint stri
 			},
 			Test: LoadTestValuesTest{
 				Endpoint: loadTestEndpoint,
+				Name:     TestName,
 			},
 		}
 
@@ -207,7 +209,9 @@ func (l *LoadTest) InstallLoadTestJob(ctx context.Context, loadTestEndpoint stri
 	return nil
 }
 
-func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) error {
+// installLoadTestApp installs a chart that deploys the Stormforger test app
+// in the tenant cluster as the test workload for the load test.
+func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) error {
 	var err error
 
 	var jsonValues []byte
@@ -259,7 +263,8 @@ func (l *LoadTest) InstallTestApp(ctx context.Context, loadTestEndpoint string) 
 	return nil
 }
 
-func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
+// waitForLoadTestApp waits for all pods of the test app to be ready.
+func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 	l.logger.Log("level", "debug", "message", "waiting for loadtest-app deployment to be ready")
 
 	o := func() error {
@@ -297,7 +302,10 @@ func (l *LoadTest) WaitForLoadTestApp(ctx context.Context) error {
 	return nil
 }
 
-func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
+// waitForLoadTestJob waits for the job running the Stormforger CLI to
+// complete and then gets the pod logs which contains the results JSON. The CLI
+// is configured to wait for the load test to complete.
+func (l *LoadTest) waitForLoadTestJob(ctx context.Context) ([]byte, error) {
 	var podCount = 1
 	var podName = ""
 
@@ -334,6 +342,8 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 
 	l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
 
+	l.logger.Log("level", "debug", "message", "getting results from pod logs")
+
 	req := l.clients.ControlPlaneK8sClient.CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
 
 	readCloser, err := req.Stream()
@@ -350,9 +360,12 @@ func (l *LoadTest) WaitForLoadTestJob(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 
+	l.logger.Log("level", "debug", "message", "got results from pod logs")
+
 	return buf.Bytes(), nil
 }
 
+// installChart is a helper method for installing helm charts.
 func (l *LoadTest) installChart(ctx context.Context, helmClient helmclient.Interface, chartName string, jsonValues []byte) error {
 	var err error
 
