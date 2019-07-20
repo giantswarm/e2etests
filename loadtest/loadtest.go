@@ -30,8 +30,8 @@ type Config struct {
 
 type LoadTest struct {
 	apprClient apprclient.Interface
-	tcClients  *k8s.Clients
 	logger     micrologger.Logger
+	tcClients  *k8s.Clients
 
 	clusterID            string
 	commonDomain         string
