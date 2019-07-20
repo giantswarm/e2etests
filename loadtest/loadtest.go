@@ -9,11 +9,9 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/backoff"
-	"github.com/giantswarm/e2e-harness/pkg/framework"
-	"github.com/giantswarm/helmclient"
+	"github.com/giantswarm/e2esetup/k8s"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,57 +19,54 @@ import (
 )
 
 type Config struct {
-	Clients        *Clients
-	GuestFramework *framework.Guest
-	Logger         micrologger.Logger
+	ApprClient apprclient.Interface
+	Logger     micrologger.Logger
+	TCClients  *k8s.Clients
 
-	AuthToken    string
-	ClusterID    string
-	CommonDomain string
+	ClusterID            string
+	CommonDomain         string
+	StormForgerAuthToken string
 }
 
 type LoadTest struct {
-	clients        *Clients
-	guestFramework *framework.Guest
-	logger         micrologger.Logger
+	apprClient apprclient.Interface
+	tcClients  *k8s.Clients
+	logger     micrologger.Logger
 
-	authToken    string
-	clusterID    string
-	commonDomain string
+	clusterID            string
+	commonDomain         string
+	stormForgerAuthToken string
 }
 
 func New(config Config) (*LoadTest, error) {
-	if config.Clients.ControlPlaneHelmClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Clients.ControlPlaneHelmClient must not be empty", config)
-	}
-	if config.Clients.ControlPlaneK8sClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Clients.ControlPlaneK8sClient must not be empty", config)
-	}
-	if config.GuestFramework == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.GuestFramework must not be empty", config)
+	if config.ApprClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.ApprClient must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
 	}
-
-	if config.AuthToken == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.AuthToken must not be empty", config)
+	if config.TCClients == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.TCClients must not be empty", config)
 	}
+
 	if config.ClusterID == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ClusterID must not be empty", config)
 	}
 	if config.CommonDomain == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.CommonDomain must not be empty", config)
 	}
+	if config.StormForgerAuthToken == "" {
+		return nil, microerror.Maskf(invalidConfigError, "%T.StormForgerAuthToken must not be empty", config)
+	}
 
 	s := &LoadTest{
-		clients:        config.Clients,
-		guestFramework: config.GuestFramework,
-		logger:         config.Logger,
+		apprClient: config.ApprClient,
+		logger:     config.Logger,
+		tcClients:  config.TCClients,
 
-		authToken:    config.AuthToken,
-		clusterID:    config.ClusterID,
-		commonDomain: config.CommonDomain,
+		clusterID:            config.ClusterID,
+		commonDomain:         config.CommonDomain,
+		stormForgerAuthToken: config.StormForgerAuthToken,
 	}
 
 	return s, nil
@@ -88,14 +83,14 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	}
 
 	{
-		l.logger.LogCtx(ctx, "level", "debug", "message", "enabling HPA for Nginx Ingress Controller")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for tenant cluster kubernetes API to be up")
 
-		err = l.enableIngressControllerHPA(ctx)
+		err = l.waitForAPIUp(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		l.logger.LogCtx(ctx, "level", "debug", "message", "enabled HPA for Nginx Ingress Controller")
+		l.logger.LogCtx(ctx, "level", "debug", "message", "waited for tenant cluster kubernetes API to be up")
 	}
 
 	{
@@ -120,6 +115,17 @@ func (l *LoadTest) Test(ctx context.Context) error {
 		l.logger.LogCtx(ctx, "level", "debug", "message", "loadtest app is ready")
 	}
 
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "enabling HPA for Nginx Ingress Controller")
+
+		err = l.enableIngressControllerHPA(ctx)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "enabled HPA for Nginx Ingress Controller")
+	}
+
 	return nil
 }
 
@@ -134,7 +140,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("app=%s,cluster-operator.giantswarm.io/configmap-type=user", UserConfigMapName),
 		}
-		l, err := l.guestFramework.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceDefault).List(lo)
+		l, err := l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -157,10 +163,8 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 
 	l.logger.Log("level", "debug", "message", fmt.Sprintf("waited for %#q configmap to be created", UserConfigMapName))
 
-	values := UserConfigMapValues{
-		Data: UserConfigMapValuesData{
-			AutoscalingEnabled: true,
-		},
+	values := map[string]interface{}{
+		"autoscaling-enabled": true,
 	}
 
 	var data []byte
@@ -170,14 +174,14 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	_, err = l.guestFramework.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceSystem).Patch(UserConfigMapName, types.StrategicMergePatchType, data)
+	_, err = l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceSystem).Patch(UserConfigMapName, types.StrategicMergePatchType, data)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
 	var cr *v1alpha1.ChartConfig
 
-	cr, err = l.guestFramework.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Get(CustomResourceName, metav1.GetOptions{})
+	cr, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Get(CustomResourceName, metav1.GetOptions{})
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -185,11 +189,35 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 	// Set dummy annotation to trigger an update event.
 	annotations := cr.Annotations
 	annotations["test"] = "test"
-	cr.SetAnnotations(annotations)
+	cr.Annotations = annotations
 
-	_, err = l.guestFramework.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Update(cr)
+	_, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Update(cr)
 	if err != nil {
 		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+// installChart is a helper method for installing helm charts.
+func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValues []byte) error {
+	var err error
+	var tarballPath string
+
+	{
+		l.logger.Log("level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
+
+		tarballPath, err = l.apprClient.PullChartTarball(ctx, chartName, ChartChannel)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		err = l.tcClients.HelmClient().InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.Log("level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
 	}
 
 	return nil
@@ -202,9 +230,9 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 
 	var jsonValues []byte
 	{
-		values := AppValues{
-			Ingress: AppValuesIngress{
-				Hosts: []string{
+		values := map[string]interface{}{
+			"ingress": map[string]interface{}{
+				"hosts": []string{
 					loadTestEndpoint,
 				},
 			},
@@ -216,35 +244,45 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 		}
 	}
 
-	var tenantHelmClient helmclient.Interface
-
 	{
-		c := helmclient.Config{
-			Logger:    l.logger,
-			K8sClient: l.guestFramework.K8sClient(),
-
-			RestConfig: l.guestFramework.RestConfig(),
-		}
-
-		tenantHelmClient, err = helmclient.New(c)
+		err = l.tcClients.HelmClient().EnsureTillerInstalled(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 	}
 
 	{
-		err = tenantHelmClient.EnsureTillerInstalled(ctx)
+		err = l.installChart(ctx, AppChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 	}
 
-	{
-		err = l.installChart(ctx, tenantHelmClient, AppChartName, jsonValues)
+	return nil
+}
+
+func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
+	l.logger.Log("level", "debug", "message", "waiting for k8s API to be up")
+
+	o := func() error {
+		_, err := l.tcClients.K8sClient().CoreV1().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
 		if err != nil {
-			return microerror.Mask(err)
+			return microerror.Maskf(waitError, err.Error())
 		}
+
+		return nil
 	}
+	b := backoff.NewConstant(40*time.Minute, 30*time.Second)
+	n := func(err error, delay time.Duration) {
+		l.logger.Log("level", "debug", "message", err.Error())
+	}
+
+	err := backoff.RetryNotify(o, b, n)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	l.logger.Log("level", "debug", "message", "k8s API is up")
 
 	return nil
 }
@@ -257,7 +295,7 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=loadtest-app",
 		}
-		l, err := l.guestFramework.K8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
+		l, err := l.tcClients.K8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -284,45 +322,6 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 	}
 
 	l.logger.Log("level", "debug", "message", "waited for loadtest-app deployment to be ready")
-
-	return nil
-}
-
-// installChart is a helper method for installing helm charts.
-func (l *LoadTest) installChart(ctx context.Context, helmClient helmclient.Interface, chartName string, jsonValues []byte) error {
-	var err error
-
-	var apprClient *apprclient.Client
-	{
-		c := apprclient.Config{
-			Fs:     afero.NewOsFs(),
-			Logger: l.logger,
-
-			Address:      CNRAddress,
-			Organization: CNROrganization,
-		}
-
-		apprClient, err = apprclient.New(c)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	{
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
-
-		tarballPath, err := apprClient.PullChartTarball(ctx, chartName, ChartChannel)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		err = helmClient.InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
-	}
 
 	return nil
 }
