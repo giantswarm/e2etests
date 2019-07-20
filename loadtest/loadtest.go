@@ -1,10 +1,14 @@
 package loadtest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
+
+	"github.com/giantswarm/helmclient"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apprclient"
@@ -13,6 +17,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	yaml "gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/helm/pkg/helm"
@@ -20,6 +25,7 @@ import (
 
 type Config struct {
 	ApprClient apprclient.Interface
+	CPClients  *k8s.Clients
 	Logger     micrologger.Logger
 	TCClients  *k8s.Clients
 
@@ -30,6 +36,7 @@ type Config struct {
 
 type LoadTest struct {
 	apprClient apprclient.Interface
+	cpClients  *k8s.Clients
 	logger     micrologger.Logger
 	tcClients  *k8s.Clients
 
@@ -41,6 +48,9 @@ type LoadTest struct {
 func New(config Config) (*LoadTest, error) {
 	if config.ApprClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ApprClient must not be empty", config)
+	}
+	if config.CPClients == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.CPClients must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -61,6 +71,7 @@ func New(config Config) (*LoadTest, error) {
 
 	s := &LoadTest{
 		apprClient: config.ApprClient,
+		cpClients:  config.CPClients,
 		logger:     config.Logger,
 		tcClients:  config.TCClients,
 
@@ -79,7 +90,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		loadTestEndpoint = fmt.Sprintf("loadtest-app.%s.%s", l.clusterID, l.commonDomain)
 
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
 	}
 
 	{
@@ -126,6 +137,68 @@ func (l *LoadTest) Test(ctx context.Context) error {
 		l.logger.LogCtx(ctx, "level", "debug", "message", "enabled HPA for Nginx Ingress Controller")
 	}
 
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "installing loadtest job")
+
+		err = l.installLoadTestJob(ctx, loadTestEndpoint)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "installed loadtest job")
+	}
+
+	var jsonResults []byte
+
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest job to complete")
+
+		jsonResults, err = l.waitForLoadTestJob(ctx)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "loadtest job is complete")
+	}
+
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", "checking loadtest results")
+
+		err = l.checkLoadTestResults(ctx, jsonResults)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", "checked loadtest results")
+	}
+
+	return nil
+}
+
+// checkLoadTestResults parses the load test results JSON and determines if the
+// test was successful or not.
+func (l *LoadTest) checkLoadTestResults(ctx context.Context, jsonResults []byte) error {
+	var err error
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", "checking loadtest results")
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", jsonResults)
+
+	var results LoadTestResults
+
+	err = json.Unmarshal(jsonResults, &results)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	apdexScore := results.Data.Attributes.BasicStatistics.Apdex75
+
+	if apdexScore < ApdexPassThreshold {
+		return microerror.Maskf(invalidExecutionError, "apdex score of %f is less than %f", apdexScore, ApdexPassThreshold)
+	}
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("load test passed: apdex score of %f is >= %f", apdexScore, ApdexPassThreshold))
+
 	return nil
 }
 
@@ -134,7 +207,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 	var err error
 
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("waiting for %#q configmap to be created", UserConfigMapName))
+	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for %#q configmap to be created", UserConfigMapName))
 
 	o := func() error {
 		lo := metav1.ListOptions{
@@ -153,7 +226,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 
 	b := backoff.NewConstant(10*time.Minute, 15*time.Second)
 	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
+		l.logger.LogCtx(ctx, "level", "debug", "message", err.Error())
 	}
 
 	err = backoff.RetryNotify(o, b, n)
@@ -161,7 +234,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("waited for %#q configmap to be created", UserConfigMapName))
+	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waited for %#q configmap to be created", UserConfigMapName))
 
 	values := map[string]interface{}{
 		"autoscaling-enabled": true,
@@ -200,24 +273,57 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 }
 
 // installChart is a helper method for installing helm charts.
-func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValues []byte) error {
+func (l *LoadTest) installChart(ctx context.Context, helmClient helmclient.Interface, chartName string, jsonValues []byte) error {
 	var err error
 	var tarballPath string
 
 	{
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
 
 		tarballPath, err = l.apprClient.PullChartTarball(ctx, chartName, ChartChannel)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		err = l.tcClients.HelmClient().InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
+		err = helmClient.InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
+	}
+
+	return nil
+}
+
+// installLoadTestJob installs a chart that creates a job that uses the
+// Stormforger CLI to trigger the load test.
+func (l *LoadTest) installLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
+	var err error
+
+	var jsonValues []byte
+	{
+		values := map[string]interface{}{
+			"auth": map[string]interface{}{
+				"token": l.stormForgerAuthToken,
+			},
+			"test": map[string]interface{}{
+				"endpoint": loadTestEndpoint,
+				"name":     TestName,
+			},
+		}
+
+		jsonValues, err = json.Marshal(values)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	{
+		err = l.installChart(ctx, l.cpClients.HelmClient(), JobChartName, jsonValues)
+		if err != nil {
+			return microerror.Mask(err)
+		}
 	}
 
 	return nil
@@ -252,7 +358,7 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 	}
 
 	{
-		err = l.installChart(ctx, AppChartName, jsonValues)
+		err = l.installChart(ctx, l.tcClients.HelmClient(), AppChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -262,7 +368,7 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 }
 
 func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
-	l.logger.Log("level", "debug", "message", "waiting for k8s API to be up")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for k8s API to be up")
 
 	o := func() error {
 		_, err := l.tcClients.K8sClient().CoreV1().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
@@ -274,7 +380,7 @@ func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
 	}
 	b := backoff.NewConstant(40*time.Minute, 30*time.Second)
 	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
+		l.logger.LogCtx(ctx, "level", "debug", "stack", err.Error())
 	}
 
 	err := backoff.RetryNotify(o, b, n)
@@ -282,14 +388,14 @@ func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", "k8s API is up")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "k8s API is up")
 
 	return nil
 }
 
 // waitForLoadTestApp waits for all pods of the test app to be ready.
 func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
-	l.logger.Log("level", "debug", "message", "waiting for loadtest-app deployment to be ready")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest-app deployment to be ready")
 
 	o := func() error {
 		lo := metav1.ListOptions{
@@ -313,7 +419,7 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 
 	b := backoff.NewConstant(2*time.Minute, 15*time.Second)
 	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
+		l.logger.LogCtx(ctx, "level", "debug", "message", err.Error())
 	}
 
 	err := backoff.RetryNotify(o, b, n)
@@ -321,7 +427,70 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", "waited for loadtest-app deployment to be ready")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waited for loadtest-app deployment to be ready")
 
 	return nil
+}
+
+// waitForLoadTestJob waits for the job running the StormForger CLI to
+// complete and then gets the pod logs which contains the results JSON. The CLI
+// is configured to wait for the load test to complete.
+func (l *LoadTest) waitForLoadTestJob(ctx context.Context) ([]byte, error) {
+	var podCount = 1
+	var podName = ""
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for stormforger-cli job")
+
+	o := func() error {
+		lo := metav1.ListOptions{
+			FieldSelector: "status.phase=Succeeded",
+			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
+		}
+		l, err := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		if len(l.Items) == podCount {
+			podName = l.Items[0].Name
+
+			return nil
+		}
+
+		return microerror.Maskf(waitError, "want %d Succeeded pods found %d", podCount, len(l.Items))
+	}
+
+	b := backoff.NewConstant(20*time.Minute, 30*time.Second)
+	n := func(err error, delay time.Duration) {
+		l.logger.LogCtx(ctx, "level", "debug", "message", err.Error())
+	}
+
+	err := backoff.RetryNotify(o, b, n)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waited for stormforger-cli job")
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", "getting results from pod logs")
+
+	req := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
+
+	readCloser, err := req.Stream()
+	if err != nil {
+		return nil, err
+	}
+
+	defer readCloser.Close()
+
+	buf := new(bytes.Buffer)
+
+	_, err = io.Copy(buf, readCloser)
+	if err != nil {
+		return nil, err
+	}
+
+	l.logger.LogCtx(ctx, "level", "debug", "message", "got results from pod logs")
+
+	return buf.Bytes(), nil
 }
