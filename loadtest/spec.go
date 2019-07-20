@@ -29,10 +29,11 @@ type Interface interface {
 	// https://github.com/stormforger/testapp
 	//
 	//     - Generate loadtest-app endpoint for the tenant cluster.
-	//     - Enable HPA for Nginx Ingress Controller in the tenant cluster via
-	// 		 user configmap.
+	//     - Wait for tenant cluster kubernetes API to be up.
 	//     - Install loadtest-app chart in the tenant cluster.
 	//     - Wait for loadtest-app deployment to be ready.
+	//     - Enable HPA for Nginx Ingress Controller in the tenant cluster via
+	// 		 user configmap.
 	//     - TODO Install stormforger-cli chart.
 	//     - TODO Wait for stormforger-cli job to be completed.
 	//     - TODO Get logs for stormforger-cli pod with the results.

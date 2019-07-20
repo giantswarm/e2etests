@@ -79,7 +79,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 	{
 		loadTestEndpoint = fmt.Sprintf("loadtest-app.%s.%s", l.clusterID, l.commonDomain)
 
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("loadtest-app endpoint is %#q", loadTestEndpoint))
 	}
 
 	{
@@ -134,7 +134,7 @@ func (l *LoadTest) Test(ctx context.Context) error {
 func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 	var err error
 
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("waiting for %#q configmap to be created", UserConfigMapName))
+	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waiting for %#q configmap to be created", UserConfigMapName))
 
 	o := func() error {
 		lo := metav1.ListOptions{
@@ -153,7 +153,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 
 	b := backoff.NewConstant(10*time.Minute, 15*time.Second)
 	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
+		l.logger.LogCtx(ctx, "level", "debug", "message", err.Error())
 	}
 
 	err = backoff.RetryNotify(o, b, n)
@@ -161,7 +161,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", fmt.Sprintf("waited for %#q configmap to be created", UserConfigMapName))
+	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waited for %#q configmap to be created", UserConfigMapName))
 
 	values := map[string]interface{}{
 		"autoscaling-enabled": true,
@@ -205,7 +205,7 @@ func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValue
 	var tarballPath string
 
 	{
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing %#q", chartName))
 
 		tarballPath, err = l.apprClient.PullChartTarball(ctx, chartName, ChartChannel)
 		if err != nil {
@@ -217,7 +217,7 @@ func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValue
 			return microerror.Mask(err)
 		}
 
-		l.logger.Log("level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
 	}
 
 	return nil
@@ -262,7 +262,7 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 }
 
 func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
-	l.logger.Log("level", "debug", "message", "waiting for k8s API to be up")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for k8s API to be up")
 
 	o := func() error {
 		_, err := l.tcClients.K8sClient().CoreV1().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
@@ -274,7 +274,7 @@ func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
 	}
 	b := backoff.NewConstant(40*time.Minute, 30*time.Second)
 	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
+		l.logger.LogCtx(ctx, "level", "debug", "stack", err.Error())
 	}
 
 	err := backoff.RetryNotify(o, b, n)
@@ -282,14 +282,14 @@ func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", "k8s API is up")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "k8s API is up")
 
 	return nil
 }
 
 // waitForLoadTestApp waits for all pods of the test app to be ready.
 func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
-	l.logger.Log("level", "debug", "message", "waiting for loadtest-app deployment to be ready")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for loadtest-app deployment to be ready")
 
 	o := func() error {
 		lo := metav1.ListOptions{
@@ -313,7 +313,7 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 
 	b := backoff.NewConstant(2*time.Minute, 15*time.Second)
 	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
+		l.logger.LogCtx(ctx, "level", "debug", "message", err.Error())
 	}
 
 	err := backoff.RetryNotify(o, b, n)
@@ -321,7 +321,7 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 		return microerror.Mask(err)
 	}
 
-	l.logger.Log("level", "debug", "message", "waited for loadtest-app deployment to be ready")
+	l.logger.LogCtx(ctx, "level", "debug", "message", "waited for loadtest-app deployment to be ready")
 
 	return nil
 }
