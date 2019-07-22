@@ -138,11 +138,14 @@
 
 [[projects]]
   branch = "add-helmclient"
-  digest = "1:3cfb08464f6d985dfcbac8571dd191462f5b0b07c76464b6af441c84a5efec03"
+  digest = "1:507914fe0b95bf079714423d7b3b5e7d39f266a6bf171d526e358d89656dd92a"
   name = "github.com/giantswarm/e2esetup"
-  packages = ["k8s"]
+  packages = [
+    "helmclient",
+    "k8s",
+  ]
   pruneopts = "UT"
-  revision = "7b953fdbc6ec4f2d9ab8d03530e9327444e1f44b"
+  revision = "d9e776844446853002818b1670727a7eee085f00"
 
 [[projects]]
   branch = "master"
@@ -933,6 +936,7 @@
     "github.com/giantswarm/apprclient",
     "github.com/giantswarm/backoff",
     "github.com/giantswarm/e2e-harness/pkg/framework",
+    "github.com/giantswarm/e2esetup/helmclient",
     "github.com/giantswarm/e2esetup/k8s",
     "github.com/giantswarm/helmclient",
     "github.com/giantswarm/ipam",

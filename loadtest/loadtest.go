@@ -9,6 +9,7 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/backoff"
+	"github.com/giantswarm/e2esetup/helmclient"
 	"github.com/giantswarm/e2esetup/k8s"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -19,9 +20,10 @@ import (
 )
 
 type Config struct {
-	ApprClient apprclient.Interface
-	Logger     micrologger.Logger
-	TCClients  *k8s.Clients
+	ApprClient   apprclient.Interface
+	Logger       micrologger.Logger
+	TCClients    *k8s.Clients
+	TCHelmClient *helmclient.Client
 
 	ClusterID            string
 	CommonDomain         string
@@ -29,9 +31,10 @@ type Config struct {
 }
 
 type LoadTest struct {
-	apprClient apprclient.Interface
-	logger     micrologger.Logger
-	tcClients  *k8s.Clients
+	apprClient   apprclient.Interface
+	logger       micrologger.Logger
+	tcClients    *k8s.Clients
+	tcHelmClient *helmclient.Client
 
 	clusterID            string
 	commonDomain         string
@@ -48,6 +51,9 @@ func New(config Config) (*LoadTest, error) {
 	if config.TCClients == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.TCClients must not be empty", config)
 	}
+	if config.TCHelmClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.TCHelmClient must not be empty", config)
+	}
 
 	if config.ClusterID == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ClusterID must not be empty", config)
@@ -60,9 +66,10 @@ func New(config Config) (*LoadTest, error) {
 	}
 
 	s := &LoadTest{
-		apprClient: config.ApprClient,
-		logger:     config.Logger,
-		tcClients:  config.TCClients,
+		apprClient:   config.ApprClient,
+		logger:       config.Logger,
+		tcClients:    config.TCClients,
+		tcHelmClient: config.TCHelmClient,
 
 		clusterID:            config.ClusterID,
 		commonDomain:         config.CommonDomain,
@@ -212,7 +219,7 @@ func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValue
 			return microerror.Mask(err)
 		}
 
-		err = l.tcClients.HelmClient().InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
+		err = l.tcHelmClient.HelmClient().InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -245,7 +252,7 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 	}
 
 	{
-		err = l.tcClients.HelmClient().EnsureTillerInstalled(ctx)
+		err = l.tcHelmClient.HelmClient().EnsureTillerInstalled(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
