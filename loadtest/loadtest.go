@@ -170,37 +170,49 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 
 	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("waited for %#q configmap to be created", UserConfigMapName))
 
-	values := map[string]interface{}{
-		"autoscaling-enabled": true,
-	}
-
 	var data []byte
 
-	data, err = yaml.Marshal(values)
-	if err != nil {
-		return microerror.Mask(err)
-	}
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("patching %#q configmap", UserConfigMapName))
 
-	_, err = l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceSystem).Patch(UserConfigMapName, types.StrategicMergePatchType, data)
-	if err != nil {
-		return microerror.Mask(err)
+		values := map[string]interface{}{
+			"autoscaling-enabled": true,
+		}
+
+		data, err = yaml.Marshal(values)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		_, err = l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceSystem).Patch(UserConfigMapName, types.StrategicMergePatchType, data)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("patched %#q configmap", UserConfigMapName))
 	}
 
 	var cr *v1alpha1.ChartConfig
 
-	cr, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Get(CustomResourceName, metav1.GetOptions{})
-	if err != nil {
-		return microerror.Mask(err)
-	}
+	{
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("updating %#q chartconfig CR", CustomResourceName))
 
-	// Set dummy annotation to trigger an update event.
-	annotations := cr.Annotations
-	annotations["test"] = "test"
-	cr.Annotations = annotations
+		cr, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Get(CustomResourceName, metav1.GetOptions{})
+		if err != nil {
+			return microerror.Mask(err)
+		}
 
-	_, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Update(cr)
-	if err != nil {
-		return microerror.Mask(err)
+		// Set dummy annotation to trigger an update event.
+		annotations := cr.Annotations
+		annotations["test"] = "test"
+		cr.Annotations = annotations
+
+		_, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Update(cr)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("updated %#q chartconfig CR", CustomResourceName))
 	}
 
 	return nil
