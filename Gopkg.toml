@@ -47,10 +47,6 @@ required = [
   name = "github.com/giantswarm/backoff"
 
 [[constraint]]
-  branch = "add-helmclient"
-  name = "github.com/giantswarm/e2esetup"
-
-[[constraint]]
   branch = "master"
   name = "github.com/giantswarm/e2esetup"
 

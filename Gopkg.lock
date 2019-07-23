@@ -110,9 +110,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2810bd14b69c6b38eddb5d6d34c2ee89ad9c8d67eb528794b12584202e7510ff"
+  digest = "1:4343acb7fa9c6dc314f1c7841494fa5686d2ad08ae868cfb1aa3277a5ea55b4c"
   name = "github.com/giantswarm/apprclient"
-  packages = ["."]
+  packages = [
+    ".",
+    "apprclienttest",
+  ]
   pruneopts = "UT"
   revision = "4615b197120e48c20818898c04df0845b0bf15c9"
 
@@ -135,14 +138,6 @@
   ]
   pruneopts = "UT"
   revision = "5a101474fa6d784552bf4cc9bf620bcfed13a7b2"
-
-[[projects]]
-  branch = "add-helmclient"
-  digest = "1:3cfb08464f6d985dfcbac8571dd191462f5b0b07c76464b6af441c84a5efec03"
-  name = "github.com/giantswarm/e2esetup"
-  packages = ["k8s"]
-  pruneopts = "UT"
-  revision = "7b953fdbc6ec4f2d9ab8d03530e9327444e1f44b"
 
 [[projects]]
   branch = "master"
@@ -197,11 +192,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c4f855224acc710b203150c63a0920cd47612d52ebe21516f03653c9cb824f84"
+  digest = "1:047e48867757c422d50bbd19c1ef1bf8ef6524c31c9a725445ab05ac6b1aa697"
   name = "github.com/giantswarm/micrologger"
   packages = [
     ".",
     "loggermeta",
+    "microloggertest",
   ]
   pruneopts = "UT"
   revision = "0926d9b7c5419173936b4556411a103bdf8d5966"
@@ -942,6 +938,7 @@
     "github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1",
     "github.com/giantswarm/apiextensions/pkg/clientset/versioned",
     "github.com/giantswarm/apprclient",
+    "github.com/giantswarm/apprclient/apprclienttest",
     "github.com/giantswarm/backoff",
     "github.com/giantswarm/e2e-harness/pkg/framework",
     "github.com/giantswarm/e2esetup/helmclient",
@@ -950,8 +947,10 @@
     "github.com/giantswarm/ipam",
     "github.com/giantswarm/microerror",
     "github.com/giantswarm/micrologger",
+    "github.com/giantswarm/micrologger/microloggertest",
     "github.com/spf13/afero",
     "gopkg.in/yaml.v2",
+    "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/types",
