@@ -2,6 +2,15 @@ package loadtest
 
 import "github.com/giantswarm/microerror"
 
+var failedLoadTestError = &microerror.Error{
+	Kind: "failedLoadTestError",
+}
+
+// IsFailedLoadTest asserts failedLoadTestError.
+func IsFailedLoadTest(err error) bool {
+	return microerror.Cause(err) == failedLoadTestError
+}
+
 var invalidConfigError = &microerror.Error{
 	Kind: "invalidConfigError",
 }

@@ -51,7 +51,7 @@ func Test_LoadTest_CheckLoadTestResults(t *testing.T) {
 		{
 			name:         "case 1: apdex fails",
 			results:      apdexFails,
-			errorMatcher: IsInvalidExecution,
+			errorMatcher: IsFailedLoadTest,
 		},
 	}
 

@@ -205,7 +205,7 @@ func (l *LoadTest) checkLoadTestResults(ctx context.Context, jsonResults []byte)
 	apdexScore := results.Data.Attributes.BasicStatistics.Apdex75
 
 	if apdexScore < ApdexPassThreshold {
-		return microerror.Maskf(invalidExecutionError, "apdex score of %f is less than %f", apdexScore, ApdexPassThreshold)
+		return microerror.Maskf(failedLoadTestError, "apdex score of %f is less than %f", apdexScore, ApdexPassThreshold)
 	}
 
 	l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("load test passed: apdex score of %f is >= %f", apdexScore, ApdexPassThreshold))
