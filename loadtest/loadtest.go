@@ -462,38 +462,40 @@ func (l *LoadTest) waitForLoadTestJob(ctx context.Context) ([]byte, error) {
 	var podCount = 1
 	var podName = ""
 
-	l.logger.Log("level", "debug", "message", "waiting for stormforger-cli job")
+	{
+		l.logger.Log("level", "debug", "message", "waiting for stormforger-cli job")
 
-	o := func() error {
-		lo := metav1.ListOptions{
-			FieldSelector: "status.phase=Succeeded",
-			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
+		o := func() error {
+			lo := metav1.ListOptions{
+				FieldSelector: "status.phase=Succeeded",
+				LabelSelector: "app.kubernetes.io/name=stormforger-cli",
+			}
+			l, err := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			if len(l.Items) == podCount {
+				podName = l.Items[0].Name
+
+				return nil
+			}
+
+			return microerror.Maskf(waitError, "want %d Succeeded pods found %d", podCount, len(l.Items))
 		}
-		l, err := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
+
+		b := backoff.NewConstant(20*time.Minute, 30*time.Second)
+		n := func(err error, delay time.Duration) {
+			l.logger.Log("level", "debug", "message", err.Error())
+		}
+
+		err := backoff.RetryNotify(o, b, n)
 		if err != nil {
-			return microerror.Mask(err)
+			return nil, microerror.Mask(err)
 		}
 
-		if len(l.Items) == podCount {
-			podName = l.Items[0].Name
-
-			return nil
-		}
-
-		return microerror.Maskf(waitError, "want %d Succeeded pods found %d", podCount, len(l.Items))
+		l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
 	}
-
-	b := backoff.NewConstant(20*time.Minute, 30*time.Second)
-	n := func(err error, delay time.Duration) {
-		l.logger.Log("level", "debug", "message", err.Error())
-	}
-
-	err := backoff.RetryNotify(o, b, n)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
 
 	var results []byte
 

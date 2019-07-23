@@ -2,6 +2,7 @@ package loadtest
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/giantswarm/apprclient/apprclienttest"
@@ -75,8 +76,8 @@ func Test_LoadTest_CheckLoadTestResults(t *testing.T) {
 		t.Fatalf("error == %#v, want nil", err)
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			err = l.checkLoadTestResults(ctx, []byte(tc.results))
 
 			switch {

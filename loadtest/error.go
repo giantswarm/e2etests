@@ -20,10 +20,6 @@ func IsInvalidConfig(err error) bool {
 	return microerror.Cause(err) == invalidConfigError
 }
 
-var invalidExecutionError = &microerror.Error{
-	Kind: "invalidExecutionError",
-}
-
 var waitError = &microerror.Error{
 	Kind: "waitError",
 }
