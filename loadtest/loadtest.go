@@ -1,9 +1,11 @@
 package loadtest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
@@ -14,6 +16,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	yaml "gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/helm/pkg/helm"
@@ -21,6 +24,8 @@ import (
 
 type Config struct {
 	ApprClient   apprclient.Interface
+	CPClients    *k8s.Clients
+	CPHelmClient *helmclient.Client
 	Logger       micrologger.Logger
 	TCClients    *k8s.Clients
 	TCHelmClient *helmclient.Client
@@ -32,6 +37,8 @@ type Config struct {
 
 type LoadTest struct {
 	apprClient   apprclient.Interface
+	cpClients    *k8s.Clients
+	cpHelmClient *helmclient.Client
 	logger       micrologger.Logger
 	tcClients    *k8s.Clients
 	tcHelmClient *helmclient.Client
@@ -44,6 +51,12 @@ type LoadTest struct {
 func New(config Config) (*LoadTest, error) {
 	if config.ApprClient == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ApprClient must not be empty", config)
+	}
+	if config.CPClients == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.CPClients must not be empty", config)
+	}
+	if config.CPHelmClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.CPHelmClient must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -67,6 +80,8 @@ func New(config Config) (*LoadTest, error) {
 
 	s := &LoadTest{
 		apprClient:   config.ApprClient,
+		cpClients:    config.CPClients,
+		cpHelmClient: config.CPHelmClient,
 		logger:       config.Logger,
 		tcClients:    config.TCClients,
 		tcHelmClient: config.TCHelmClient,
@@ -281,7 +296,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 }
 
 // installChart is a helper method for installing helm charts.
-func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValues []byte) error {
+func (l *LoadTest) installChart(ctx context.Context, helmClient *helmclient.Client, chartName string, jsonValues []byte) error {
 	var err error
 	var tarballPath string
 
@@ -293,12 +308,45 @@ func (l *LoadTest) installChart(ctx context.Context, chartName string, jsonValue
 			return microerror.Mask(err)
 		}
 
-		err = l.tcHelmClient.HelmClient().InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
+		err = helmClient.HelmClient().InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
 		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed %#q", chartName))
+	}
+
+	return nil
+}
+
+// installLoadTestJob installs a chart that creates a job that uses the
+// Stormforger CLI to trigger the load test.
+func (l *LoadTest) installLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
+	var err error
+
+	var jsonValues []byte
+	{
+		values := map[string]interface{}{
+			"auth": map[string]string{
+				"token": l.stormForgerAuthToken,
+			},
+			"test": map[string]string{
+				"endpoint": loadTestEndpoint,
+				"name":     TestName,
+			},
+		}
+
+		jsonValues, err = json.Marshal(values)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	{
+		err = l.installChart(ctx, l.cpHelmClient, JobChartName, jsonValues)
+		if err != nil {
+			return microerror.Mask(err)
+		}
 	}
 
 	return nil
@@ -333,7 +381,7 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 	}
 
 	{
-		err = l.installChart(ctx, AppChartName, jsonValues)
+		err = l.installChart(ctx, l.tcHelmClient, AppChartName, jsonValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -405,4 +453,73 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 	l.logger.LogCtx(ctx, "level", "debug", "message", "waited for loadtest-app deployment to be ready")
 
 	return nil
+}
+
+// waitForLoadTestJob waits for the job running the Stormforger CLI to
+// complete and then gets the pod logs which contains the results JSON. The CLI
+// is configured to wait for the load test to complete.
+func (l *LoadTest) waitForLoadTestJob(ctx context.Context) ([]byte, error) {
+	var podCount = 1
+	var podName = ""
+
+	l.logger.Log("level", "debug", "message", "waiting for stormforger-cli job")
+
+	o := func() error {
+		lo := metav1.ListOptions{
+			FieldSelector: "status.phase=Succeeded",
+			LabelSelector: "app.kubernetes.io/name=stormforger-cli",
+		}
+		l, err := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		if len(l.Items) == podCount {
+			podName = l.Items[0].Name
+
+			return nil
+		}
+
+		return microerror.Maskf(waitError, "want %d Succeeded pods found %d", podCount, len(l.Items))
+	}
+
+	b := backoff.NewConstant(20*time.Minute, 30*time.Second)
+	n := func(err error, delay time.Duration) {
+		l.logger.Log("level", "debug", "message", err.Error())
+	}
+
+	err := backoff.RetryNotify(o, b, n)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	l.logger.Log("level", "debug", "message", "waited for stormforger-cli job")
+
+	var results []byte
+
+	{
+		l.logger.Log("level", "debug", "message", "getting results from pod logs")
+
+		req := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
+
+		readCloser, err := req.Stream()
+		if err != nil {
+			return nil, err
+		}
+
+		defer readCloser.Close()
+
+		buf := new(bytes.Buffer)
+
+		_, err = io.Copy(buf, readCloser)
+		if err != nil {
+			return nil, err
+		}
+
+		results = buf.Bytes()
+
+		l.logger.Log("level", "debug", "message", "got results from pod logs")
+	}
+
+	return results, nil
 }
