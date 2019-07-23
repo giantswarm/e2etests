@@ -137,7 +137,7 @@
   revision = "5a101474fa6d784552bf4cc9bf620bcfed13a7b2"
 
 [[projects]]
-  branch = "add-helmclient"
+  branch = "master"
   digest = "1:507914fe0b95bf079714423d7b3b5e7d39f266a6bf171d526e358d89656dd92a"
   name = "github.com/giantswarm/e2esetup"
   packages = [
@@ -145,7 +145,7 @@
     "k8s",
   ]
   pruneopts = "UT"
-  revision = "d9e776844446853002818b1670727a7eee085f00"
+  revision = "e4905c949351133d8f94f04a96f4775fd4800d25"
 
 [[projects]]
   branch = "master"
