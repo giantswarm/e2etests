@@ -944,10 +944,7 @@
     "github.com/giantswarm/apprclient",
     "github.com/giantswarm/backoff",
     "github.com/giantswarm/e2e-harness/pkg/framework",
-<<<<<<< HEAD
-=======
     "github.com/giantswarm/e2esetup/helmclient",
->>>>>>> master
     "github.com/giantswarm/e2esetup/k8s",
     "github.com/giantswarm/helmclient",
     "github.com/giantswarm/ipam",
