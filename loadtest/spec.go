@@ -36,8 +36,7 @@ type Interface interface {
 	//     - Wait for tenant cluster kubernetes API to be up.
 	//     - Install loadtest-app chart in the tenant cluster.
 	//     - Wait for loadtest-app deployment to be ready.
-	//     - Enable HPA for Nginx Ingress Controller in the tenant cluster via
-	// 		 user configmap.
+	//     - Enable HPA for Nginx Ingress Controller.
 	//     - Install stormforger-cli chart.
 	//     - Wait for stormforger-cli job to be completed.
 	//     - Get logs for stormforger-cli pod with the results.
