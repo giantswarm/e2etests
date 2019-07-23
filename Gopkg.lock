@@ -126,16 +126,26 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:50a1a5c79dcaf6512d3ea5594f10b9b5a9d542ed73b6623afa8f42fce55aadef"
+  digest = "1:112bd84416da1b0dfc2d7aef1e8c4fec0f36de592c6d0f350e8085e3afa9212a"
   name = "github.com/giantswarm/e2e-harness"
   packages = [
     "internal/filelogger",
     "pkg/framework",
-    "pkg/framework/resource",
     "pkg/harness",
   ]
   pruneopts = "UT"
   revision = "5a101474fa6d784552bf4cc9bf620bcfed13a7b2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:507914fe0b95bf079714423d7b3b5e7d39f266a6bf171d526e358d89656dd92a"
+  name = "github.com/giantswarm/e2esetup"
+  packages = [
+    "helmclient",
+    "k8s",
+  ]
+  pruneopts = "UT"
+  revision = "e4905c949351133d8f94f04a96f4775fd4800d25"
 
 [[projects]]
   branch = "master"
@@ -195,6 +205,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "5a0784e0ee23c5b732c0d15023ac3dce8aef145a"
+
+[[projects]]
+  branch = "master"
+  digest = "1:7f108bbeae041753de0a3d8b4bc8d13d4d1c7884129523ece1495104f5591742"
+  name = "github.com/giantswarm/operatorkit"
+  packages = ["client/k8scrdclient"]
+  pruneopts = "UT"
+  revision = "a2a6a2f14115f32c611ee0373bc4e637c3a6da63"
 
 [[projects]]
   branch = "master"
@@ -912,21 +930,27 @@
   analyzer-version = 1
   input-imports = [
     "github.com/docker/distribution/reference",
+    "github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1",
     "github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1",
+    "github.com/giantswarm/apiextensions/pkg/clientset/versioned",
     "github.com/giantswarm/apprclient",
     "github.com/giantswarm/backoff",
     "github.com/giantswarm/e2e-harness/pkg/framework",
-    "github.com/giantswarm/e2e-harness/pkg/framework/resource",
+    "github.com/giantswarm/e2esetup/helmclient",
+    "github.com/giantswarm/e2esetup/k8s",
     "github.com/giantswarm/helmclient",
     "github.com/giantswarm/ipam",
     "github.com/giantswarm/microerror",
     "github.com/giantswarm/micrologger",
     "github.com/spf13/afero",
+    "gopkg.in/yaml.v2",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apiserver/pkg/endpoints/request",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/rest",
+    "k8s.io/helm/pkg/helm",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
