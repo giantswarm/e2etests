@@ -6,6 +6,9 @@ import (
 
 const (
 	// ApdexPassThreshold is the minimum value allowed for the test to pass.
+	// Apdex (Application Performance Index) is an index that summarizes the
+	// performance of a system under test. For more information see
+	// https://en.wikipedia.org/wiki/Apdex#Apdex_method.
 	ApdexPassThreshold      = 0.95
 	AppChartName            = "loadtest-app-chart"
 	CNRAddress              = "https://quay.io"
