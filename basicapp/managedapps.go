@@ -1,4 +1,4 @@
-package managedapps
+package basicapp
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/e2etests/managedapps/legacyresource"
+	"github.com/giantswarm/e2etests/basicapp/legacyresource"
 )
 
 type Config struct {

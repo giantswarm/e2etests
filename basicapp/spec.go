@@ -1,4 +1,4 @@
-package managedapps
+package basicapp
 
 import (
 	"context"
