@@ -37,3 +37,12 @@ var notFoundError = &microerror.Error{
 func IsNotFound(err error) bool {
 	return microerror.Cause(err) == notFoundError
 }
+
+var notReadyError = &microerror.Error{
+	Kind: "notReadyError",
+}
+
+// IsNotReady asserts notReadyError.
+func IsNotReady(err error) bool {
+	return microerror.Cause(err) == notReadyError
+}

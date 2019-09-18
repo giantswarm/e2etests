@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/helmclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -176,16 +178,32 @@ func (b *BasicApp) checkDaemonSet(expectedDaemonSet DaemonSet) error {
 }
 
 // checkDeployment ensures that key properties of the deployment are correct.
-func (b *BasicApp) checkDeployment(expectedDeployment Deployment) error {
+func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deployment) error {
+
+	o := func() error {
+		err := b.checkDeploymentReady(ctx, expectedDeployment)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		return nil
+	}
+
+	off := backoff.NewConstant(30*time.Second, 5*time.Second)
+	n := func(err error, delay time.Duration) {
+		b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("%#q deployment is not ready retrying in %s", expectedDeployment.Name, delay), "stack", fmt.Sprintf("%#v", err))
+	}
+
+	err := backoff.RetryNotify(o, off, n)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	ds, err := b.clients.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "deployment: %#q", expectedDeployment.Name)
 	} else if err != nil {
 		return microerror.Mask(err)
-	}
-
-	if int32(expectedDeployment.Replicas) != *ds.Spec.Replicas {
-		return microerror.Maskf(invalidReplicasError, "expected %d replicas got: %d", expectedDeployment.Replicas, *ds.Spec.Replicas)
 	}
 
 	err = b.checkLabels("deployment labels", expectedDeployment.DeploymentLabels, ds.ObjectMeta.Labels)
@@ -203,6 +221,24 @@ func (b *BasicApp) checkDeployment(expectedDeployment Deployment) error {
 		return microerror.Mask(err)
 	}
 
+	return nil
+}
+
+// checkDeploymentReady checks for the specified deployment that the number of
+// ready replicas matches the desired state.
+func (b *BasicApp) checkDeploymentReady(ctx context.Context, expectedDeployment Deployment) error {
+	deploy, err := b.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return microerror.Maskf(notReadyError, "deployment %#q in not found", expectedDeployment.Name, expectedDeployment.Namespace)
+	} else if err != nil {
+		return microerror.Mask(err)
+	}
+
+	if deploy.Status.ReadyReplicas != *deploy.Spec.Replicas {
+		return microerror.Maskf(notReadyError, "deployment %#q want %d replicas %d ready", expectedDeployment.Name, *deploy.Spec.Replicas, deploy.Status.ReadyReplicas)
+	}
+
+	// Deployment is ready.
 	return nil
 }
 

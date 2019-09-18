@@ -55,7 +55,6 @@ type DaemonSet struct {
 	Namespace   string
 	Labels      map[string]string
 	MatchLabels map[string]string
-	Replicas    int
 }
 
 // Deployment is a deployment to be tested.
@@ -65,7 +64,6 @@ type Deployment struct {
 	DeploymentLabels map[string]string
 	MatchLabels      map[string]string
 	PodLabels        map[string]string
-	Replicas         int
 }
 
 type Interface interface {
