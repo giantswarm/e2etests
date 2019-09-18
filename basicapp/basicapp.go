@@ -23,7 +23,7 @@ type Config struct {
 	ChartResources ChartResources
 }
 
-type ManagedApps struct {
+type BasicApp struct {
 	clients    Clients
 	helmClient *helmclient.Client
 	logger     micrologger.Logger
@@ -33,7 +33,7 @@ type ManagedApps struct {
 	chartResources ChartResources
 }
 
-func New(config Config) (*ManagedApps, error) {
+func New(config Config) (*BasicApp, error) {
 	var err error
 
 	if config.HelmClient == nil {
@@ -69,7 +69,7 @@ func New(config Config) (*ManagedApps, error) {
 		}
 	}
 
-	ms := &ManagedApps{
+	ms := &BasicApp{
 		clients:    config.Clients,
 		helmClient: config.HelmClient,
 		logger:     config.Logger,
@@ -82,92 +82,92 @@ func New(config Config) (*ManagedApps, error) {
 	return ms, nil
 }
 
-func (ms *ManagedApps) Test(ctx context.Context) error {
+func (b *BasicApp) Test(ctx context.Context) error {
 	var err error
 
 	{
-		ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", ms.chart.Name))
+		b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", b.chart.Name))
 
-		err = ms.resource.Install(ms.chart.Name, ms.chart.URL, ms.chart.ChartValues)
+		err = b.resource.Install(b.chart.Name, b.chart.URL, b.chart.ChartValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed chart %#q", ms.chart.Name))
+		b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed chart %#q", b.chart.Name))
 	}
 
 	{
-		ms.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
+		b.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
 
-		err = ms.resource.WaitForStatus(ms.chart.Name, "DEPLOYED")
+		err = b.resource.WaitForStatus(b.chart.Name, "DEPLOYED")
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		ms.logger.LogCtx(ctx, "level", "debug", "message", "chart is deployed")
+		b.logger.LogCtx(ctx, "level", "debug", "message", "chart is deployed")
 	}
 	{
-		ms.logger.LogCtx(ctx, "level", "debug", "message", "checking resources")
+		b.logger.LogCtx(ctx, "level", "debug", "message", "checking resources")
 
-		for _, ds := range ms.chartResources.DaemonSets {
-			ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking daemonset %#q", ds.Name))
+		for _, ds := range b.chartResources.DaemonSets {
+			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking daemonset %#q", ds.Name))
 
-			err = ms.checkDaemonSet(ds)
+			err = b.checkDaemonSet(ds)
 			if err != nil {
 				return microerror.Mask(err)
 			}
 
-			ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("daemonset %#q is correct", ds.Name))
+			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("daemonset %#q is correct", ds.Name))
 		}
 
-		for _, d := range ms.chartResources.Deployments {
-			ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking deployment %#q", d.Name))
+		for _, d := range b.chartResources.Deployments {
+			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking deployment %#q", d.Name))
 
-			err = ms.checkDeployment(d)
+			err = b.checkDeployment(d)
 			if err != nil {
 				return microerror.Mask(err)
 			}
 
-			ms.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("deployment %#q is correct", d.Name))
+			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("deployment %#q is correct", d.Name))
 		}
 
-		ms.logger.LogCtx(ctx, "level", "debug", "message", "resources are correct")
+		b.logger.LogCtx(ctx, "level", "debug", "message", "resources are correct")
 	}
 
 	{
-		ms.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
+		b.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
 
-		err = ms.helmClient.RunReleaseTest(ctx, ms.chart.Name)
+		err = b.helmClient.RunReleaseTest(ctx, b.chart.Name)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		ms.logger.LogCtx(ctx, "level", "debug", "message", "release tests passed")
+		b.logger.LogCtx(ctx, "level", "debug", "message", "release tests passed")
 	}
 
 	return nil
 }
 
 // checkDaemonSet ensures that key properties of the daemonset are correct.
-func (ms *ManagedApps) checkDaemonSet(expectedDaemonSet DaemonSet) error {
-	ds, err := ms.clients.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
+func (b *BasicApp) checkDaemonSet(expectedDaemonSet DaemonSet) error {
+	ds, err := b.clients.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "daemonset %#q", expectedDaemonSet.Name)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = ms.checkLabels("daemonset labels", expectedDaemonSet.Labels, ds.ObjectMeta.Labels)
+	err = b.checkLabels("daemonset labels", expectedDaemonSet.Labels, ds.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = ms.checkLabels("daemonset matchLabels", expectedDaemonSet.MatchLabels, ds.Spec.Selector.MatchLabels)
+	err = b.checkLabels("daemonset matchLabels", expectedDaemonSet.MatchLabels, ds.Spec.Selector.MatchLabels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = ms.checkLabels("daemonset pod labels", expectedDaemonSet.Labels, ds.Spec.Template.ObjectMeta.Labels)
+	err = b.checkLabels("daemonset pod labels", expectedDaemonSet.Labels, ds.Spec.Template.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -176,8 +176,8 @@ func (ms *ManagedApps) checkDaemonSet(expectedDaemonSet DaemonSet) error {
 }
 
 // checkDeployment ensures that key properties of the deployment are correct.
-func (ms *ManagedApps) checkDeployment(expectedDeployment Deployment) error {
-	ds, err := ms.clients.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
+func (b *BasicApp) checkDeployment(expectedDeployment Deployment) error {
+	ds, err := b.clients.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "deployment: %#q", expectedDeployment.Name)
 	} else if err != nil {
@@ -188,17 +188,17 @@ func (ms *ManagedApps) checkDeployment(expectedDeployment Deployment) error {
 		return microerror.Maskf(invalidReplicasError, "expected %d replicas got: %d", expectedDeployment.Replicas, *ds.Spec.Replicas)
 	}
 
-	err = ms.checkLabels("deployment labels", expectedDeployment.DeploymentLabels, ds.ObjectMeta.Labels)
+	err = b.checkLabels("deployment labels", expectedDeployment.DeploymentLabels, ds.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = ms.checkLabels("deployment matchLabels", expectedDeployment.MatchLabels, ds.Spec.Selector.MatchLabels)
+	err = b.checkLabels("deployment matchLabels", expectedDeployment.MatchLabels, ds.Spec.Selector.MatchLabels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = ms.checkLabels("deployment pod labels", expectedDeployment.PodLabels, ds.Spec.Template.ObjectMeta.Labels)
+	err = b.checkLabels("deployment pod labels", expectedDeployment.PodLabels, ds.Spec.Template.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -206,9 +206,9 @@ func (ms *ManagedApps) checkDeployment(expectedDeployment Deployment) error {
 	return nil
 }
 
-func (ms *ManagedApps) checkLabels(labelType string, expectedLabels, labels map[string]string) error {
+func (b *BasicApp) checkLabels(labelType string, expectedLabels, labels map[string]string) error {
 	if !reflect.DeepEqual(expectedLabels, labels) {
-		ms.logger.Log("level", "debug", "message", fmt.Sprintf("expected %s: %v got: %v", labelType, expectedLabels, labels))
+		b.logger.Log("level", "debug", "message", fmt.Sprintf("expected %s: %v got: %v", labelType, expectedLabels, labels))
 		return microerror.Maskf(invalidLabelsError, "%s do not match expected labels", labelType)
 	}
 
