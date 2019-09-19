@@ -125,7 +125,7 @@ func (b *BasicApp) Test(ctx context.Context) error {
 		for _, d := range b.chartResources.Deployments {
 			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking deployment %#q", d.Name))
 
-			err = b.checkDeployment(d)
+			err = b.checkDeployment(ctx, d)
 			if err != nil {
 				return microerror.Mask(err)
 			}
