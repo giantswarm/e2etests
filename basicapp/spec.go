@@ -39,11 +39,12 @@ func (cc Chart) Validate() error {
 type ChartResources struct {
 	DaemonSets  []DaemonSet
 	Deployments []Deployment
+	Services    []Service
 }
 
 func (cr ChartResources) Validate() error {
-	if len(cr.DaemonSets) == 0 && len(cr.Deployments) == 0 {
-		return microerror.Maskf(invalidConfigError, "at least one daemonset or deployment must be specified")
+	if len(cr.DaemonSets) == 0 && len(cr.Deployments) == 0 && len(cr.Services) == 0 {
+		return microerror.Maskf(invalidConfigError, "at least one daemonset, deployment or service must be specified")
 	}
 
 	return nil
@@ -64,6 +65,13 @@ type Deployment struct {
 	DeploymentLabels map[string]string
 	MatchLabels      map[string]string
 	PodLabels        map[string]string
+}
+
+// Service is a service to be tested.
+type Service struct {
+	Name      string
+	Namespace string
+	Labels    map[string]string
 }
 
 type Interface interface {
