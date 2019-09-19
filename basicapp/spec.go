@@ -44,7 +44,7 @@ type ChartResources struct {
 
 func (cr ChartResources) Validate() error {
 	if len(cr.DaemonSets) == 0 && len(cr.Deployments) == 0 && len(cr.Services) == 0 {
-		return microerror.Maskf(invalidConfigError, "at least one daemonset or deployment must be specified")
+		return microerror.Maskf(invalidConfigError, "at least one daemonset or deployment, service must be specified")
 	}
 
 	return nil
