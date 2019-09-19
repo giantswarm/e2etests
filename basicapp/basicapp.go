@@ -134,6 +134,17 @@ func (bo *BasicApp) Test(ctx context.Context) error {
 			bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("deployment %#q is correct", d.Name))
 		}
 
+		for _, s := range bo.chartResources.Services {
+			bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking service %#q", s.Name))
+
+			err = bo.checkService(ctx, s)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("service %#q is correct", s.Name))
+		}
+
 		bo.logger.LogCtx(ctx, "level", "debug", "message", "resources are correct")
 	}
 
@@ -247,6 +258,24 @@ func (bo *BasicApp) checkLabels(labelType string, expectedLabels, labels map[str
 	if !reflect.DeepEqual(expectedLabels, labels) {
 		bo.logger.Log("level", "debug", "message", fmt.Sprintf("expected %s: %v got: %v", labelType, expectedLabels, labels))
 		return microerror.Maskf(invalidLabelsError, "%s do not match expected labels", labelType)
+	}
+
+	return nil
+}
+
+// checkService ensures that key properties of the service are correct.
+func (bo *BasicApp) checkService(ctx context.Context, expectedService Service) error {
+
+	ds, err := bo.clients.K8sClient().CoreV1().Services(expectedService.Namespace).Get(expectedService.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return microerror.Maskf(notFoundError, "service: %#q", expectedService.Name)
+	} else if err != nil {
+		return microerror.Mask(err)
+	}
+
+	err = bo.checkLabels("service labels", expectedService.Labels, ds.ObjectMeta.Labels)
+	if err != nil {
+		return microerror.Mask(err)
 	}
 
 	return nil
