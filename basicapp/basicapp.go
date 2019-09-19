@@ -71,7 +71,7 @@ func New(config Config) (*BasicApp, error) {
 		}
 	}
 
-	ms := &BasicApp{
+	b := &BasicApp{
 		clients:    config.Clients,
 		helmClient: config.HelmClient,
 		logger:     config.Logger,
@@ -81,95 +81,96 @@ func New(config Config) (*BasicApp, error) {
 		chartResources: config.ChartResources,
 	}
 
-	return ms, nil
+	return b, nil
 }
 
-func (b *BasicApp) Test(ctx context.Context) error {
+func (bo *BasicApp) Test(ctx context.Context) error {
 	var err error
 
 	{
-		b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", b.chart.Name))
+		bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installing chart %#q", bo.chart.Name))
 
-		err = b.resource.Install(b.chart.Name, b.chart.URL, b.chart.ChartValues)
+		err = bo.resource.Install(bo.chart.Name, bo.chart.URL, bo.chart.ChartValues)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed chart %#q", b.chart.Name))
+		bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("installed chart %#q", bo.chart.Name))
 	}
 
 	{
-		b.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
+		bo.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
 
-		err = b.resource.WaitForStatus(b.chart.Name, "DEPLOYED")
+		err = bo.resource.WaitForStatus(bo.chart.Name, "DEPLOYED")
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		b.logger.LogCtx(ctx, "level", "debug", "message", "chart is deployed")
+		bo.logger.LogCtx(ctx, "level", "debug", "message", "chart is deployed")
 	}
+
 	{
-		b.logger.LogCtx(ctx, "level", "debug", "message", "checking resources")
+		bo.logger.LogCtx(ctx, "level", "debug", "message", "checking resources")
 
-		for _, ds := range b.chartResources.DaemonSets {
-			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking daemonset %#q", ds.Name))
+		for _, ds := range bo.chartResources.DaemonSets {
+			bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking daemonset %#q", ds.Name))
 
-			err = b.checkDaemonSet(ds)
+			err = bo.checkDaemonSet(ds)
 			if err != nil {
 				return microerror.Mask(err)
 			}
 
-			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("daemonset %#q is correct", ds.Name))
+			bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("daemonset %#q is correct", ds.Name))
 		}
 
-		for _, d := range b.chartResources.Deployments {
-			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking deployment %#q", d.Name))
+		for _, d := range bo.chartResources.Deployments {
+			bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking deployment %#q", d.Name))
 
-			err = b.checkDeployment(ctx, d)
+			err = bo.checkDeployment(ctx, d)
 			if err != nil {
 				return microerror.Mask(err)
 			}
 
-			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("deployment %#q is correct", d.Name))
+			bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("deployment %#q is correct", d.Name))
 		}
 
-		b.logger.LogCtx(ctx, "level", "debug", "message", "resources are correct")
+		bo.logger.LogCtx(ctx, "level", "debug", "message", "resources are correct")
 	}
 
 	{
-		b.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
+		bo.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
 
-		err = b.helmClient.RunReleaseTest(ctx, b.chart.Name)
+		err = bo.helmClient.RunReleaseTest(ctx, bo.chart.Name)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 
-		b.logger.LogCtx(ctx, "level", "debug", "message", "release tests passed")
+		bo.logger.LogCtx(ctx, "level", "debug", "message", "release tests passed")
 	}
 
 	return nil
 }
 
 // checkDaemonSet ensures that key properties of the daemonset are correct.
-func (b *BasicApp) checkDaemonSet(expectedDaemonSet DaemonSet) error {
-	ds, err := b.clients.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
+func (bo *BasicApp) checkDaemonSet(expectedDaemonSet DaemonSet) error {
+	ds, err := bo.clients.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "daemonset %#q", expectedDaemonSet.Name)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = b.checkLabels("daemonset labels", expectedDaemonSet.Labels, ds.ObjectMeta.Labels)
+	err = bo.checkLabels("daemonset labels", expectedDaemonSet.Labels, ds.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = b.checkLabels("daemonset matchLabels", expectedDaemonSet.MatchLabels, ds.Spec.Selector.MatchLabels)
+	err = bo.checkLabels("daemonset matchLabels", expectedDaemonSet.MatchLabels, ds.Spec.Selector.MatchLabels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = b.checkLabels("daemonset pod labels", expectedDaemonSet.Labels, ds.Spec.Template.ObjectMeta.Labels)
+	err = bo.checkLabels("daemonset pod labels", expectedDaemonSet.Labels, ds.Spec.Template.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -178,10 +179,10 @@ func (b *BasicApp) checkDaemonSet(expectedDaemonSet DaemonSet) error {
 }
 
 // checkDeployment ensures that key properties of the deployment are correct.
-func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deployment) error {
+func (bo *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deployment) error {
 
 	o := func() error {
-		err := b.checkDeploymentReady(ctx, expectedDeployment)
+		err := bo.checkDeploymentReady(ctx, expectedDeployment)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -191,7 +192,7 @@ func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deplo
 
 	off := backoff.NewConstant(30*time.Second, 5*time.Second)
 	n := func(err error, delay time.Duration) {
-		b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("%#q deployment is not ready retrying in %s", expectedDeployment.Name, delay), "stack", fmt.Sprintf("%#v", err))
+		bo.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("%#q deployment is not ready retrying in %s", expectedDeployment.Name, delay), "stack", fmt.Sprintf("%#v", err))
 	}
 
 	err := backoff.RetryNotify(o, off, n)
@@ -199,24 +200,24 @@ func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deplo
 		return microerror.Mask(err)
 	}
 
-	ds, err := b.clients.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
+	ds, err := bo.clients.K8sClient().Apps().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "deployment: %#q", expectedDeployment.Name)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = b.checkLabels("deployment labels", expectedDeployment.DeploymentLabels, ds.ObjectMeta.Labels)
+	err = bo.checkLabels("deployment labels", expectedDeployment.DeploymentLabels, ds.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = b.checkLabels("deployment matchLabels", expectedDeployment.MatchLabels, ds.Spec.Selector.MatchLabels)
+	err = bo.checkLabels("deployment matchLabels", expectedDeployment.MatchLabels, ds.Spec.Selector.MatchLabels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = b.checkLabels("deployment pod labels", expectedDeployment.PodLabels, ds.Spec.Template.ObjectMeta.Labels)
+	err = bo.checkLabels("deployment pod labels", expectedDeployment.PodLabels, ds.Spec.Template.ObjectMeta.Labels)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -226,8 +227,8 @@ func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deplo
 
 // checkDeploymentReady checks for the specified deployment that the number of
 // ready replicas matches the desired state.
-func (b *BasicApp) checkDeploymentReady(ctx context.Context, expectedDeployment Deployment) error {
-	deploy, err := b.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
+func (bo *BasicApp) checkDeploymentReady(ctx context.Context, expectedDeployment Deployment) error {
+	deploy, err := bo.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notReadyError, "deployment %#q in not found", expectedDeployment.Name, expectedDeployment.Namespace)
 	} else if err != nil {
@@ -242,9 +243,9 @@ func (b *BasicApp) checkDeploymentReady(ctx context.Context, expectedDeployment 
 	return nil
 }
 
-func (b *BasicApp) checkLabels(labelType string, expectedLabels, labels map[string]string) error {
+func (bo *BasicApp) checkLabels(labelType string, expectedLabels, labels map[string]string) error {
 	if !reflect.DeepEqual(expectedLabels, labels) {
-		b.logger.Log("level", "debug", "message", fmt.Sprintf("expected %s: %v got: %v", labelType, expectedLabels, labels))
+		bo.logger.Log("level", "debug", "message", fmt.Sprintf("expected %s: %v got: %v", labelType, expectedLabels, labels))
 		return microerror.Maskf(invalidLabelsError, "%s do not match expected labels", labelType)
 	}
 
