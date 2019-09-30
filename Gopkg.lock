@@ -251,7 +251,7 @@
 
 [[projects]]
   branch = "kubernetes-1.15.4"
-  digest = "1:1b2f403734c1fdeee2eb8cc0eb65ecfe0f67ed47609a7f1c6f88d2efc8753994"
+  digest = "1:3624178d8f256277055c07e10c593bc50f4b70f30c8d6e9aeefc8be710d87faf"
   name = "github.com/giantswarm/e2esetup"
   packages = [
     "chart/env",
@@ -259,7 +259,7 @@
     "k8s",
   ]
   pruneopts = "UT"
-  revision = "5a7729d62649e0fdfcd3a9878c0bad8c6700085d"
+  revision = "dfb2d8e5947b017be906431f379a1be430f75e34"
 
 [[projects]]
   branch = "master"
