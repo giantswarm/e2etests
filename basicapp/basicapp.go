@@ -168,7 +168,7 @@ func (b *BasicApp) Test(ctx context.Context) error {
 
 // checkDaemonSet ensures that key properties of the daemonset are correct.
 func (b *BasicApp) checkDaemonSet(expectedDaemonSet DaemonSet) error {
-	ds, err := b.clients.K8sClient().Apps().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
+	ds, err := b.clients.K8sClient().AppsV1().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "daemonset %#q", expectedDaemonSet.Name)
 	} else if err != nil {
