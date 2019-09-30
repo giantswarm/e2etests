@@ -46,11 +46,11 @@ required = [
   branch = "master"
   name = "github.com/giantswarm/backoff"
 
-[[override]]
+[[constraint]]
   branch = "kubernetes-1.15.4"
   name = "github.com/giantswarm/e2esetup"
 
-[[override]]
+[[constraint]]
   branch = "kubernetes-1.15.4"
   name = "github.com/giantswarm/e2e-harness"
 
@@ -87,12 +87,12 @@ required = [
   version = "v1.15.4"
 
 [[override]]
-  name = "github.com/russross/blackfriday"
-  version = "v1.5.2"
-
-[[override]]
   name = "github.com/ghodss/yaml"
   branch = "master"
+
+[[override]]
+  name = "github.com/russross/blackfriday"
+  version = "v1.5.2"
 
 
 
