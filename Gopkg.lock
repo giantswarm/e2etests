@@ -1154,8 +1154,7 @@
   version = "kubernetes-1.15.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ea125203a41b51dfd12a810186655d6262002ede6b5e66a7cc2b6db28f8989d9"
+  digest = "1:f107a860bd0f6b51b21bc0d21ca093cc655560361fd812c7035951648651c128"
   name = "k8s.io/cli-runtime"
   packages = [
     "pkg/genericclioptions",
@@ -1172,7 +1171,8 @@
     "pkg/resource",
   ]
   pruneopts = "UT"
-  revision = "b6110f10831a82e88d7bee371a11c2e6aea45034"
+  revision = "0b14c719ca62d4839a77b94a9bad25f5aa3194ea"
+  version = "kubernetes-1.15.4"
 
 [[projects]]
   digest = "1:197c2f83a36d89f52a9d3a9f179957484b4db013bfc114740c82d331b26fc3d4"
@@ -1351,12 +1351,12 @@
   version = "kubernetes-1.15.4"
 
 [[projects]]
-  branch = "master"
   digest = "1:661387e3ba412767f773c327c3752e05f13b280677661d77de30345e598ddc01"
   name = "k8s.io/component-base"
   packages = ["featuregate"]
   pruneopts = "UT"
-  revision = "804254d5600483f35d94e1cab8b10d40310def3d"
+  revision = "ed2f0867c77835b4733c8ed6f9750cd34ee9c4a7"
+  version = "kubernetes-1.15.4"
 
 [[projects]]
   digest = "1:8e4a5c2de724932a44c9f0097eb34251b39bd6596089a61baae7e88279efbfe6"

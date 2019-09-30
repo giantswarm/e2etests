@@ -75,12 +75,12 @@ required = [
   version = "kubernetes-1.15.4"
 
 [[override]]
-  branch = "master"
   name = "k8s.io/cli-runtime"
+  version = "kubernetes-1.15.4"
 
 [[override]]
-  branch = "master"
   name = "k8s.io/component-base"
+  version = "kubernetes-1.15.4"
 
 [[override]]
   name = "k8s.io/kubernetes"
