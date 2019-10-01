@@ -219,15 +219,15 @@
   revision = "7f60ca086f8108992be7121cab8cdc955790026c"
 
 [[projects]]
-  branch = "master"
-  digest = "1:4343acb7fa9c6dc314f1c7841494fa5686d2ad08ae868cfb1aa3277a5ea55b4c"
+  branch = "kubernetes-1.15.4"
+  digest = "1:40c9f20f4ae6b22470c679d911d6f6aeea448310195d4389a0e0b3578685a395"
   name = "github.com/giantswarm/apprclient"
   packages = [
     ".",
     "apprclienttest",
   ]
   pruneopts = "UT"
-  revision = "4615b197120e48c20818898c04df0845b0bf15c9"
+  revision = "dc6ecb0ae38df89a98110b4a5400f852a369b12b"
 
 [[projects]]
   branch = "master"

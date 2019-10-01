@@ -39,7 +39,7 @@ required = [
   name = "github.com/docker/distribution"
 
 [[constraint]]
-  branch = "master"
+  branch = "kubernetes-1.15.4"
   name = "github.com/giantswarm/apprclient"
 
 [[constraint]]
@@ -48,11 +48,11 @@ required = [
 
 [[constraint]]
   branch = "kubernetes-1.15.4"
-  name = "github.com/giantswarm/e2esetup"
+  name = "github.com/giantswarm/e2e-harness"
 
 [[constraint]]
   branch = "kubernetes-1.15.4"
-  name = "github.com/giantswarm/e2e-harness"
+  name = "github.com/giantswarm/e2esetup"
 
 [[constraint]]
   branch = "master"
