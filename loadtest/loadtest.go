@@ -11,8 +11,8 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/backoff"
-	"github.com/giantswarm/e2esetup/helmclient"
-	"github.com/giantswarm/e2esetup/k8s"
+	"github.com/giantswarm/helmclient"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	yaml "gopkg.in/yaml.v2"
@@ -24,10 +24,10 @@ import (
 
 type Config struct {
 	ApprClient   apprclient.Interface
-	CPClients    *k8s.Clients
+	CPClients    *k8sclient.Clients
 	CPHelmClient *helmclient.Client
 	Logger       micrologger.Logger
-	TCClients    *k8s.Clients
+	TCClients    *k8sclient.Clients
 	TCHelmClient *helmclient.Client
 
 	ClusterID            string
@@ -37,10 +37,10 @@ type Config struct {
 
 type LoadTest struct {
 	apprClient   apprclient.Interface
-	cpClients    *k8s.Clients
+	cpClients    *k8sclient.Clients
 	cpHelmClient *helmclient.Client
 	logger       micrologger.Logger
-	tcClients    *k8s.Clients
+	tcClients    *k8sclient.Clients
 	tcHelmClient *helmclient.Client
 
 	clusterID            string
@@ -308,7 +308,7 @@ func (l *LoadTest) installChart(ctx context.Context, helmClient *helmclient.Clie
 			return microerror.Mask(err)
 		}
 
-		err = helmClient.HelmClient().InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
+		err = helmClient.InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -374,7 +374,7 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 	}
 
 	{
-		err = l.tcHelmClient.HelmClient().EnsureTillerInstalled(ctx)
+		err = l.tcHelmClient.EnsureTillerInstalled(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
