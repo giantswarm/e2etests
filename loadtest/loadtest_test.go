@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/giantswarm/apprclient/apprclienttest"
-	"github.com/giantswarm/e2esetup/helmclient"
-	"github.com/giantswarm/e2esetup/k8s"
+	"github.com/giantswarm/helmclient"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/micrologger/microloggertest"
 )
 
@@ -60,10 +60,10 @@ func Test_LoadTest_CheckLoadTestResults(t *testing.T) {
 
 	c := Config{
 		ApprClient:   apprclienttest.New(apprclienttest.Config{}),
-		CPClients:    &k8s.Clients{},
+		CPClients:    &k8sclient.Clients{},
 		CPHelmClient: &helmclient.Client{},
 		Logger:       microloggertest.New(),
-		TCClients:    &k8s.Clients{},
+		TCClients:    &k8sclient.Clients{},
 		TCHelmClient: &helmclient.Client{},
 
 		ClusterID:            "eggs2",
