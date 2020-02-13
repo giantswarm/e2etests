@@ -11,7 +11,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -271,22 +271,22 @@ func (c *ClusterState) CheckTestAppIsInstalled(ctx context.Context) error {
 
 func (c *ClusterState) CreatePVC(ctx context.Context) error {
 	pvcName := "e2e-pvc"
-	pvc := &v1.PersistentVolumeClaim{
+	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pvcName,
 			Namespace: "default",
 		},
-		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					v1.ResourceName(v1.ResourceStorage): resource.MustParse("1Gi"),
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("1Gi"),
 				},
 			},
 		},
 	}
 
-	c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("creating pvc '%s'", pvcName))
+	c.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("creating pvc %#q", pvcName))
 	_, err := c.legacyFramework.K8sClient().CoreV1().PersistentVolumeClaims("default").Create(pvc)
 	if err != nil {
 		return microerror.Mask(err)
@@ -298,7 +298,7 @@ func (c *ClusterState) CreatePVC(ctx context.Context) error {
 			return microerror.Mask(err)
 		}
 
-		if pvc.Status.Phase != v1.ClaimBound {
+		if pvc.Status.Phase != corev1.ClaimBound {
 			return microerror.Maskf(waitError, "PVC '%s' is not bound yet", pvcName)
 		}
 
