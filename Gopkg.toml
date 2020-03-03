@@ -68,7 +68,7 @@ required = [
 
 [[constraint]]
   name = "github.com/giantswarm/micrologger"
-  branch = "master"
+  version = "v0.1.0"
 
 [[override]]
   name = "k8s.io/apimachinery"
