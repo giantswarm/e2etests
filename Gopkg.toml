@@ -40,35 +40,31 @@ required = [
 
 [[constraint]]
   name = "github.com/giantswarm/apiextensions"
-  branch = "master"
+  version = "~0.1.0"
 
 [[constraint]]
   name = "github.com/giantswarm/apprclient"
-  branch = "master"
+  version = "~0.1.0"
 
 [[constraint]]
   name = "github.com/giantswarm/backoff"
-  branch = "master"
-
-[[constraint]]
-  name = "github.com/giantswarm/e2e-harness"
-  branch = "master"
+  version = "~0.1.0"
 
 [[constraint]]
   name = "github.com/giantswarm/ipam"
-  branch = "master"
+  version = "~0.1.0"
 
 [[constraint]]
   name = "github.com/giantswarm/k8sclient"
-  branch = "master"
+  version = "~0.1.0"
 
 [[constraint]]
   name = "github.com/giantswarm/microerror"
-  branch = "master"
+  version = "~0.1.0"
 
 [[constraint]]
   name = "github.com/giantswarm/micrologger"
-  version = "v0.1.0"
+  version = "~0.1.0"
 
 [[override]]
   name = "k8s.io/apimachinery"
