@@ -9,7 +9,6 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/PuerkitoBio/purell v1.1.1
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
-	github.com/Sirupsen/logrus v1.4.2
 	github.com/beorn7/perks v1.0.1
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1
@@ -77,6 +76,7 @@ require (
 	github.com/prometheus/procfs v0.0.8
 	github.com/rubenv/sql-migrate v0.0.0-20191121092708-da1cb182f00e
 	github.com/russross/blackfriday v1.5.2
+	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
