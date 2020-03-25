@@ -101,7 +101,7 @@ require (
 	k8s.io/cli-runtime v0.16.6
 	k8s.io/client-go v0.16.6
 	k8s.io/component-base v0.16.6
-	k8s.io/helm v0.16.6
+	k8s.io/helm v2.16.1+incompatible
 	k8s.io/klog v0.16.6
 	k8s.io/kube-openapi v0.16.6
 	k8s.io/kubectl v0.16.6
