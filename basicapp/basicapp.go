@@ -245,7 +245,7 @@ func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deplo
 func (b *BasicApp) checkDeploymentReady(ctx context.Context, expectedDeployment Deployment) error {
 	deploy, err := b.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return microerror.Maskf(notReadyError, "deployment %#q in not found", expectedDeployment.Name, expectedDeployment.Namespace)
+		return microerror.Maskf(notReadyError, "deployment %#q in %#q not found", expectedDeployment.Name, expectedDeployment.Namespace)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
