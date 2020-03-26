@@ -11,6 +11,7 @@ import (
 	"github.com/giantswarm/micrologger/microloggertest"
 )
 
+// nolint:gosec
 const (
 	apdexFails = `{
 		"data": {
