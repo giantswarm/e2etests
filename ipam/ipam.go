@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/giantswarm/e2etests/ipam/provider"
 	"github.com/giantswarm/ipam"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+
+	"github.com/giantswarm/e2etests/ipam/provider"
 )
 
 type Config struct {
