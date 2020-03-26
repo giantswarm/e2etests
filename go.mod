@@ -22,10 +22,10 @@ require (
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/giantswarm/apiextensions v0.2.0
-	github.com/giantswarm/apprclient v0.2.0 // Waiting
+	github.com/giantswarm/apprclient v0.2.0
 	github.com/giantswarm/backoff v0.2.0
-	github.com/giantswarm/errors v0.2.0 // Mine - waiting
-	github.com/giantswarm/helmclient v0.2.0 // Waiting
+	github.com/giantswarm/errors v0.2.0
+	github.com/giantswarm/helmclient v0.2.0
 	github.com/giantswarm/ipam v0.2.0
 	github.com/giantswarm/k8sclient v0.2.0
 	github.com/giantswarm/k8sportforward v0.2.0
@@ -102,7 +102,7 @@ require (
 	k8s.io/client-go v0.16.6
 	k8s.io/component-base v0.16.6
 	k8s.io/helm v2.16.1+incompatible
-	k8s.io/klog v0.16.6
+	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.16.6
 	k8s.io/kubectl v0.16.6
 	k8s.io/kubernetes v1.16.6
