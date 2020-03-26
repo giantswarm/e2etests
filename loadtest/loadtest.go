@@ -458,7 +458,7 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 // waitForLoadTestJob waits for the job running the Stormforger CLI to
 // complete and then gets the pod logs which contains the results JSON. The CLI
 // is configured to wait for the load test to complete.
-func (l *LoadTest) waitForLoadTestJob(ctx context.Context) ([]byte, error) {
+func (l *LoadTest) waitForLoadTestJob(_ context.Context) ([]byte, error) {
 	var podCount = 1
 	var podName = ""
 

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/giantswarm/e2etests/ipam/provider"
 	"github.com/giantswarm/ipam"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+
+	"github.com/giantswarm/e2etests/ipam/provider"
 )
 
 type Config struct {
@@ -122,7 +123,7 @@ func (i *IPAM) Test(ctx context.Context) error {
 			}
 
 			// Verify that allocated subnets don't overlap.
-			for subnet, _ := range allocatedSubnets {
+			for subnet := range allocatedSubnets {
 				err := verifyNoOverlap(s.Network.CIDR, subnet)
 				if err != nil {
 					return microerror.Mask(err)
@@ -192,7 +193,7 @@ func (i *IPAM) Test(ctx context.Context) error {
 			return microerror.Maskf(alreadyExistsError, "subnet %s already exists for %s", s.Network.CIDR, otherCluster)
 		}
 
-		for subnet, _ := range allocatedSubnets {
+		for subnet := range allocatedSubnets {
 			err := verifyNoOverlap(s.Network.CIDR, subnet)
 			if err != nil {
 				return microerror.Mask(err)
