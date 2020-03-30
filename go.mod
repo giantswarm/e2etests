@@ -36,7 +36,7 @@ require (
 	k8s.io/apimachinery v0.16.6
 	k8s.io/apiserver v0.16.6 // indirect
 	k8s.io/cli-runtime v0.16.6 // indirect
-	k8s.io/client-go v0.16.6
+	k8s.io/client-go v0.18.0
 	k8s.io/component-base v0.16.6 // indirect
 	k8s.io/helm v2.16.4+incompatible
 	k8s.io/kubectl v0.16.6 // indirect
