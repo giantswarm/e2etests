@@ -52,10 +52,6 @@ func New(config Config) (*BasicApp, error) {
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
-	err = config.ChartResources.Validate()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
 
 	var resource *legacyresource.Resource
 	{
