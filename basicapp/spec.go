@@ -43,14 +43,6 @@ type ChartResources struct {
 	Services    []Service
 }
 
-func (cr ChartResources) Validate() error {
-	if len(cr.DaemonSets) == 0 && len(cr.Deployments) == 0 && len(cr.Services) == 0 {
-		return microerror.Maskf(invalidConfigError, "at least one daemonset, deployment or service must be specified")
-	}
-
-	return nil
-}
-
 // DaemonSet is a daemonset to be tested.
 type DaemonSet struct {
 	Name        string
