@@ -33,7 +33,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.16.6
-	k8s.io/apimachinery v0.16.6
+	k8s.io/apimachinery v0.18.1
 	k8s.io/apiserver v0.16.6 // indirect
 	k8s.io/cli-runtime v0.16.6 // indirect
 	k8s.io/client-go v0.16.6
