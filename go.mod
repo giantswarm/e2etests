@@ -8,7 +8,7 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.11.1+incompatible // indirect
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect
-	github.com/giantswarm/apiextensions v0.2.0
+	github.com/giantswarm/apiextensions v0.2.5
 	github.com/giantswarm/apprclient v0.2.0
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/helmclient v0.2.0
