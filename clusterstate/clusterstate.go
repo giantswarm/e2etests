@@ -117,50 +117,6 @@ func (c *ClusterState) Test(ctx context.Context) error {
 		c.logger.LogCtx(ctx, "level", "debug", "message", "test app is installed")
 	}
 
-	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", "replacing master node")
-
-		err = c.provider.ReplaceMaster()
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		c.logger.LogCtx(ctx, "level", "debug", "message", "master node replaced")
-	}
-
-	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", "waiting api to go down")
-
-		err = c.legacyFramework.WaitForAPIDown()
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		c.logger.LogCtx(ctx, "level", "debug", "message", "api is down")
-	}
-
-	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", "waiting for guest cluster")
-
-		err = c.legacyFramework.WaitForGuestReady(ctx)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		c.logger.LogCtx(ctx, "level", "debug", "message", "guest cluster ready")
-	}
-
-	{
-		c.logger.LogCtx(ctx, "level", "debug", "message", "checking test app is installed")
-
-		err = c.CheckTestAppIsInstalled(ctx)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		c.logger.LogCtx(ctx, "level", "debug", "message", "test app is installed")
-	}
-
 	return nil
 }
 
