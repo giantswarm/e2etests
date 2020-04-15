@@ -38,7 +38,7 @@ require (
 	k8s.io/cli-runtime v0.16.6 // indirect
 	k8s.io/client-go v0.16.6
 	k8s.io/component-base v0.16.6 // indirect
-	k8s.io/helm v2.16.4+incompatible
+	k8s.io/helm v2.16.6+incompatible
 	k8s.io/kubectl v0.16.6 // indirect
 	vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787 // indirect
 )
