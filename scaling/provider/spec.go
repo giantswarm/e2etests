@@ -2,15 +2,7 @@ package provider
 
 import (
 	"context"
-
-	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
 )
-
-type Clients interface {
-	// G8sClient returns a properly configured control plane client for the Giant
-	// Swarm API Extensions Types.
-	G8sClient() versioned.Interface
-}
 
 type Interface interface {
 	AddWorker() error
