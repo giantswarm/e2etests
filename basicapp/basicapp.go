@@ -97,7 +97,7 @@ func (b *BasicApp) Test(ctx context.Context) error {
 	{
 		b.logger.LogCtx(ctx, "level", "debug", "message", "waiting for deployed status")
 
-		err = b.resource.WaitForStatus(b.chart.Name, "DEPLOYED")
+		err = b.resource.WaitForStatus(b.chart.Name, "deployed")
 		if err != nil {
 			return microerror.Mask(err)
 		}
