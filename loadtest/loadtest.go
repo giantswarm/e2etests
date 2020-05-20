@@ -15,11 +15,10 @@ import (
 	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	yaml "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/helm/pkg/helm"
+	"sigs.k8s.io/yaml"
 )
 
 type Config struct {
@@ -296,7 +295,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 }
 
 // installChart is a helper method for installing helm charts.
-func (l *LoadTest) installChart(ctx context.Context, helmClient *helmclient.Client, chartName string, jsonValues []byte) error {
+func (l *LoadTest) installChart(ctx context.Context, helmClient *helmclient.Client, chartName string, values map[string]interface{}) error {
 	var err error
 	var tarballPath string
 
@@ -308,7 +307,10 @@ func (l *LoadTest) installChart(ctx context.Context, helmClient *helmclient.Clie
 			return microerror.Mask(err)
 		}
 
-		err = helmClient.InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, helm.ValueOverrides(jsonValues))
+		opts := helmclient.InstallOptions{
+			ReleaseName: chartName,
+		}
+		err = helmClient.InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, values, opts)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -324,7 +326,6 @@ func (l *LoadTest) installChart(ctx context.Context, helmClient *helmclient.Clie
 func (l *LoadTest) installLoadTestJob(ctx context.Context, loadTestEndpoint string) error {
 	var err error
 
-	var jsonValues []byte
 	{
 		values := map[string]interface{}{
 			"auth": map[string]string{
@@ -336,14 +337,7 @@ func (l *LoadTest) installLoadTestJob(ctx context.Context, loadTestEndpoint stri
 			},
 		}
 
-		jsonValues, err = json.Marshal(values)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	{
-		err = l.installChart(ctx, l.cpHelmClient, JobChartName, jsonValues)
+		err = l.installChart(ctx, l.cpHelmClient, JobChartName, values)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -357,7 +351,6 @@ func (l *LoadTest) installLoadTestJob(ctx context.Context, loadTestEndpoint stri
 func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) error {
 	var err error
 
-	var jsonValues []byte
 	{
 		values := map[string]interface{}{
 			"ingress": map[string]interface{}{
@@ -367,21 +360,7 @@ func (l *LoadTest) installTestApp(ctx context.Context, loadTestEndpoint string) 
 			},
 		}
 
-		jsonValues, err = json.Marshal(values)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	{
-		err = l.tcHelmClient.EnsureTillerInstalled(ctx)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-	}
-
-	{
-		err = l.installChart(ctx, l.tcHelmClient, AppChartName, jsonValues)
+		err = l.installChart(ctx, l.tcHelmClient, AppChartName, values)
 		if err != nil {
 			return microerror.Mask(err)
 		}

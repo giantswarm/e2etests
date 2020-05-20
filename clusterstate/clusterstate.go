@@ -8,6 +8,7 @@ import (
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/helmclient"
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
@@ -17,18 +18,23 @@ import (
 )
 
 type Config struct {
+	K8sClient       k8sclient.Interface
 	LegacyFramework LegacyFramework
 	Logger          micrologger.Logger
 	Provider        provider.Interface
 }
 
 type ClusterState struct {
+	k8sClient       k8sclient.Interface
 	legacyFramework LegacyFramework
 	logger          micrologger.Logger
 	provider        provider.Interface
 }
 
 func New(config Config) (*ClusterState, error) {
+	if config.K8sClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.K8sClient must not be empty", config)
+	}
 	if config.LegacyFramework == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.LegacyFramework must not be empty", config)
 	}
@@ -40,6 +46,7 @@ func New(config Config) (*ClusterState, error) {
 	}
 
 	s := &ClusterState{
+		k8sClient:       config.K8sClient,
 		legacyFramework: config.LegacyFramework,
 		logger:          config.Logger,
 		provider:        config.Provider,
@@ -187,17 +194,10 @@ func (c *ClusterState) InstallTestApp(ctx context.Context) error {
 	{
 		c := helmclient.Config{
 			Logger:    c.logger,
-			K8sClient: c.legacyFramework.K8sClient(),
-
-			RestConfig: c.legacyFramework.RestConfig(),
+			K8sClient: c.k8sClient,
 		}
 
 		helmClient, err = helmclient.New(c)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		err = helmClient.EnsureTillerInstalled(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -212,7 +212,11 @@ func (c *ClusterState) InstallTestApp(ctx context.Context) error {
 			return microerror.Mask(err)
 		}
 
-		err = helmClient.InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace)
+		opts := helmclient.InstallOptions{
+			ReleaseName: ChartName,
+			Wait:        true,
+		}
+		err = helmClient.InstallReleaseFromTarball(ctx, tarballPath, ChartNamespace, nil, opts)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -230,7 +234,7 @@ func (c *ClusterState) CheckTestAppIsInstalled(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app=e2e-app",
 		}
-		l, err := c.legacyFramework.K8sClient().CoreV1().Pods(ChartNamespace).List(lo)
+		l, err := c.k8sClient.K8sClient().CoreV1().Pods(ChartNamespace).List(lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}

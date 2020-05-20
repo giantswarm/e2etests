@@ -1,28 +1,29 @@
 package provider
 
 import (
+	"github.com/giantswarm/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type KVMConfig struct {
-	Clients Clients
-	Logger  micrologger.Logger
+	K8sClient k8sclient.Interface
+	Logger    micrologger.Logger
 
 	ClusterID string
 }
 
 type KVM struct {
-	clients Clients
-	logger  micrologger.Logger
+	k8sClient k8sclient.Interface
+	logger    micrologger.Logger
 
 	clusterID string
 }
 
 func NewKVM(config KVMConfig) (*KVM, error) {
-	if config.Clients == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Clients must not be empty", config)
+	if config.K8sClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.K8sClient must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -33,8 +34,8 @@ func NewKVM(config KVMConfig) (*KVM, error) {
 	}
 
 	k := &KVM{
-		clients: config.Clients,
-		logger:  config.Logger,
+		k8sClient: config.K8sClient,
+		logger:    config.Logger,
 
 		clusterID: config.ClusterID,
 	}
@@ -66,7 +67,7 @@ func (k *KVM) deleteMasterPod() error {
 		LabelSelector: "app=master",
 	}
 
-	pods, err := k.clients.K8sClient().CoreV1().Pods(namespace).List(listOptions)
+	pods, err := k.k8sClient.K8sClient().CoreV1().Pods(namespace).List(listOptions)
 	if err != nil {
 		return microerror.Mask(err)
 	} else if len(pods.Items) == 0 {
@@ -76,7 +77,7 @@ func (k *KVM) deleteMasterPod() error {
 	}
 
 	masterPod := pods.Items[0]
-	err = k.clients.K8sClient().CoreV1().Pods(namespace).Delete(masterPod.Name, &metav1.DeleteOptions{})
+	err = k.k8sClient.K8sClient().CoreV1().Pods(namespace).Delete(masterPod.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		return microerror.Mask(err)
 	}

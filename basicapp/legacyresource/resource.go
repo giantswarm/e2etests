@@ -10,7 +10,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
-	"k8s.io/helm/pkg/helm"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -54,11 +54,9 @@ func New(config Config) (*Resource, error) {
 func (r *Resource) Delete(name string) error {
 	ctx := context.TODO()
 
-	err := r.helmClient.DeleteRelease(ctx, name, helm.DeletePurge(true))
+	err := r.helmClient.DeleteRelease(ctx, r.namespace, name)
 	if helmclient.IsReleaseNotFound(err) {
 		return microerror.Maskf(releaseNotFoundError, name)
-	} else if helmclient.IsTillerNotFound(err) {
-		return microerror.Mask(tillerNotFoundError)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
@@ -69,11 +67,9 @@ func (r *Resource) Delete(name string) error {
 func (r *Resource) EnsureDeleted(ctx context.Context, name string) error {
 	r.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("ensuring deletion of release %#q", name))
 
-	err := r.helmClient.DeleteRelease(ctx, name, helm.DeletePurge(true))
+	err := r.helmClient.DeleteRelease(ctx, r.namespace, name)
 	if helmclient.IsReleaseNotFound(err) {
 		r.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("release %#q does not exist", name))
-	} else if helmclient.IsTillerNotFound(err) {
-		r.logger.LogCtx(ctx, "level", "warning", "message", "tiller is not found/installed")
 	} else if err != nil {
 		return microerror.Mask(err)
 	} else {
@@ -100,7 +96,18 @@ func (r *Resource) Install(name, url, values string, conditions ...func() error)
 		return microerror.Mask(err)
 	}
 
-	err = r.helmClient.InstallReleaseFromTarball(ctx, tarballPath, r.namespace, helm.ReleaseName(name), helm.ValueOverrides([]byte(values)), helm.InstallWait(true))
+	var rawValues map[string]interface{}
+
+	err = yaml.Unmarshal([]byte(values), &rawValues)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	opts := helmclient.InstallOptions{
+		ReleaseName: name,
+		Wait:        true,
+	}
+	err = r.helmClient.InstallReleaseFromTarball(ctx, tarballPath, r.namespace, rawValues, opts)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -130,7 +137,17 @@ func (r *Resource) Update(name, url, values string, conditions ...func() error) 
 		return microerror.Mask(err)
 	}
 
-	err = r.helmClient.UpdateReleaseFromTarball(ctx, name, tarballPath, helm.UpdateValueOverrides([]byte(values)))
+	var rawValues map[string]interface{}
+
+	err = yaml.Unmarshal([]byte(values), &rawValues)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	opts := helmclient.UpdateOptions{
+		Wait: true,
+	}
+	err = r.helmClient.UpdateReleaseFromTarball(ctx, tarballPath, r.namespace, name, rawValues, opts)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -142,7 +159,7 @@ func (r *Resource) WaitForStatus(release string, status string) error {
 	ctx := context.TODO()
 
 	operation := func() error {
-		rc, err := r.helmClient.GetReleaseContent(ctx, release)
+		rc, err := r.helmClient.GetReleaseContent(ctx, r.namespace, release)
 		if helmclient.IsReleaseNotFound(err) && status == "DELETED" {
 			// Error is expected because we purge releases when deleting.
 			return nil
@@ -171,7 +188,7 @@ func (r *Resource) WaitForVersion(release string, version string) error {
 	ctx := context.TODO()
 
 	operation := func() error {
-		rh, err := r.helmClient.GetReleaseHistory(ctx, release)
+		rh, err := r.helmClient.GetReleaseHistory(ctx, r.namespace, release)
 		if err != nil {
 			return microerror.Mask(err)
 		}

@@ -38,11 +38,11 @@ type BasicApp struct {
 func New(config Config) (*BasicApp, error) {
 	var err error
 
-	if config.HelmClient == nil {
-		return nil, microerror.Maskf(invalidConfigError, "%T.HelmClient must not be empty", config)
-	}
 	if config.Clients == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Clients must not be empty", config)
+	}
+	if config.HelmClient == nil {
+		return nil, microerror.Maskf(invalidConfigError, "%T.HelmClient must not be empty", config)
 	}
 	if config.Logger == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Logger must not be empty", config)
@@ -151,7 +151,7 @@ func (b *BasicApp) Test(ctx context.Context) error {
 
 		b.logger.LogCtx(ctx, "level", "debug", "message", "running release tests")
 
-		err = b.helmClient.RunReleaseTest(ctx, b.chart.Name)
+		err = b.helmClient.RunReleaseTest(ctx, b.chart.Namespace, b.chart.Name)
 		if err != nil {
 			return microerror.Mask(err)
 		}
