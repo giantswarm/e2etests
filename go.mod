@@ -6,7 +6,7 @@ require (
 	github.com/giantswarm/apiextensions v0.2.0
 	github.com/giantswarm/apprclient v0.2.0
 	github.com/giantswarm/backoff v0.2.0
-	github.com/giantswarm/helmclient v1.0.0
+	github.com/giantswarm/helmclient v1.0.2
 	github.com/giantswarm/ipam v0.2.0
 	github.com/giantswarm/k8sclient v0.2.0
 	github.com/giantswarm/microerror v0.2.0
