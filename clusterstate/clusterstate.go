@@ -8,7 +8,7 @@ import (
 	"github.com/giantswarm/apprclient"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/helmclient"
-	"github.com/giantswarm/k8sclient"
+	"github.com/giantswarm/k8sclient/v3/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
@@ -234,7 +234,7 @@ func (c *ClusterState) CheckTestAppIsInstalled(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app=e2e-app",
 		}
-		l, err := c.k8sClient.K8sClient().CoreV1().Pods(ChartNamespace).List(lo)
+		l, err := c.k8sClient.K8sClient().CoreV1().Pods(ChartNamespace).List(ctx, lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}

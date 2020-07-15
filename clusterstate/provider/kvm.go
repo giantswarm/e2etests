@@ -1,7 +1,9 @@
 package provider
 
 import (
-	"github.com/giantswarm/k8sclient"
+	"context"
+
+	"github.com/giantswarm/k8sclient/v3/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,8 +45,8 @@ func NewKVM(config KVMConfig) (*KVM, error) {
 	return k, nil
 }
 
-func (k *KVM) RebootMaster() error {
-	err := k.deleteMasterPod()
+func (k *KVM) RebootMaster(ctx context.Context) error {
+	err := k.deleteMasterPod(ctx)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -52,8 +54,8 @@ func (k *KVM) RebootMaster() error {
 	return nil
 }
 
-func (k *KVM) ReplaceMaster() error {
-	err := k.deleteMasterPod()
+func (k *KVM) ReplaceMaster(ctx context.Context) error {
+	err := k.deleteMasterPod(ctx)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -61,13 +63,13 @@ func (k *KVM) ReplaceMaster() error {
 	return nil
 }
 
-func (k *KVM) deleteMasterPod() error {
+func (k *KVM) deleteMasterPod(ctx context.Context) error {
 	namespace := k.clusterID
 	listOptions := metav1.ListOptions{
 		LabelSelector: "app=master",
 	}
 
-	pods, err := k.k8sClient.K8sClient().CoreV1().Pods(namespace).List(listOptions)
+	pods, err := k.k8sClient.K8sClient().CoreV1().Pods(namespace).List(ctx, listOptions)
 	if err != nil {
 		return microerror.Mask(err)
 	} else if len(pods.Items) == 0 {
@@ -77,7 +79,7 @@ func (k *KVM) deleteMasterPod() error {
 	}
 
 	masterPod := pods.Items[0]
-	err = k.k8sClient.K8sClient().CoreV1().Pods(namespace).Delete(masterPod.Name, &metav1.DeleteOptions{})
+	err = k.k8sClient.K8sClient().CoreV1().Pods(namespace).Delete(ctx, masterPod.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return microerror.Mask(err)
 	}

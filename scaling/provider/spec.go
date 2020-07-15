@@ -5,10 +5,10 @@ import (
 )
 
 type Interface interface {
-	AddWorker() error
-	NumMasters() (int, error)
-	NumWorkers() (int, error)
-	RemoveWorker() error
+	AddWorker(ctx context.Context) error
+	NumMasters(ctx context.Context) (int, error)
+	NumWorkers(ctx context.Context) (int, error)
+	RemoveWorker(ctx context.Context) error
 	WaitForNodes(ctx context.Context, num int) error
 }
 

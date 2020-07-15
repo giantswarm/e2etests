@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/giantswarm/k8sclient"
+	"github.com/giantswarm/k8sclient/v3/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,8 +53,8 @@ func NewKVM(config KVMConfig) (*KVM, error) {
 	return k, nil
 }
 
-func (k *KVM) AddWorker() error {
-	customObject, err := k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
+func (k *KVM) AddWorker(ctx context.Context) error {
+	customObject, err := k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(ctx, k.clusterID, metav1.GetOptions{})
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -72,7 +72,7 @@ func (k *KVM) AddWorker() error {
 		return microerror.Mask(err)
 	}
 
-	_, err = k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Patch(k.clusterID, types.JSONPatchType, b)
+	_, err = k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Patch(ctx, k.clusterID, types.JSONPatchType, b, metav1.PatchOptions{})
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -80,8 +80,8 @@ func (k *KVM) AddWorker() error {
 	return nil
 }
 
-func (k *KVM) NumMasters() (int, error) {
-	customObject, err := k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
+func (k *KVM) NumMasters(ctx context.Context) (int, error) {
+	customObject, err := k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(ctx, k.clusterID, metav1.GetOptions{})
 	if err != nil {
 		return 0, microerror.Mask(err)
 	}
@@ -91,8 +91,8 @@ func (k *KVM) NumMasters() (int, error) {
 	return num, nil
 }
 
-func (k *KVM) NumWorkers() (int, error) {
-	customObject, err := k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(k.clusterID, metav1.GetOptions{})
+func (k *KVM) NumWorkers(ctx context.Context) (int, error) {
+	customObject, err := k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Get(ctx, k.clusterID, metav1.GetOptions{})
 	if err != nil {
 		return 0, microerror.Mask(err)
 	}
@@ -102,7 +102,7 @@ func (k *KVM) NumWorkers() (int, error) {
 	return num, nil
 }
 
-func (k *KVM) RemoveWorker() error {
+func (k *KVM) RemoveWorker(ctx context.Context) error {
 	patches := []Patch{
 		{
 			Op:   "remove",
@@ -115,7 +115,7 @@ func (k *KVM) RemoveWorker() error {
 		return microerror.Mask(err)
 	}
 
-	_, err = k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Patch(k.clusterID, types.JSONPatchType, b)
+	_, err = k.k8sClient.G8sClient().ProviderV1alpha1().KVMConfigs("default").Patch(ctx, k.clusterID, types.JSONPatchType, b, metav1.PatchOptions{})
 	if err != nil {
 		return microerror.Mask(err)
 	}

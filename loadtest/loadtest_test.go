@@ -7,7 +7,7 @@ import (
 
 	"github.com/giantswarm/apprclient/apprclienttest"
 	"github.com/giantswarm/helmclient"
-	"github.com/giantswarm/k8sclient"
+	"github.com/giantswarm/k8sclient/v3/pkg/k8sclient"
 	"github.com/giantswarm/micrologger/microloggertest"
 )
 
