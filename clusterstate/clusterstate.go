@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/giantswarm/apprclient"
+	"github.com/giantswarm/apprclient/v2"
 	"github.com/giantswarm/backoff"
-	"github.com/giantswarm/helmclient"
-	"github.com/giantswarm/k8sclient/v3/pkg/k8sclient"
+	"github.com/giantswarm/helmclient/v2"
+	"github.com/giantswarm/k8sclient/v4/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/e2etests/clusterstate/provider"
+	"github.com/giantswarm/e2etests/v2/clusterstate/provider"
 )
 
 type Config struct {
