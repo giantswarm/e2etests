@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Upgrade helmclient to 1.0.2.
+- Updated Kubernetes dependencies to v1.18.5.
+- Upgrade helmclient to 2.0.0.
 
 ## [0.3.0] 2020-05-20
 
