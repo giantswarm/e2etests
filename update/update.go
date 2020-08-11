@@ -9,7 +9,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 
-	"github.com/giantswarm/e2etests/update/provider"
+	"github.com/giantswarm/e2etests/v2/update/provider"
 )
 
 type Config struct {

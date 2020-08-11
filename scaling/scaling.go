@@ -7,7 +7,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 
-	"github.com/giantswarm/e2etests/scaling/provider"
+	"github.com/giantswarm/e2etests/v2/scaling/provider"
 )
 
 type Config struct {
@@ -43,7 +43,7 @@ func (s *Scaling) Test(ctx context.Context) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "looking for the number of masters")
 
-		numMasters, err = s.provider.NumMasters()
+		numMasters, err = s.provider.NumMasters(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -55,7 +55,7 @@ func (s *Scaling) Test(ctx context.Context) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "looking for the number of workers")
 
-		numWorkers, err = s.provider.NumWorkers()
+		numWorkers, err = s.provider.NumWorkers(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -66,7 +66,7 @@ func (s *Scaling) Test(ctx context.Context) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "scaling up one worker")
 
-		err = s.provider.AddWorker()
+		err = s.provider.AddWorker(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -88,7 +88,7 @@ func (s *Scaling) Test(ctx context.Context) error {
 	{
 		s.logger.LogCtx(ctx, "level", "debug", "message", "scaling down one worker")
 
-		err = s.provider.RemoveWorker()
+		err = s.provider.RemoveWorker(ctx)
 		if err != nil {
 			return microerror.Mask(err)
 		}

@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/giantswarm/apprclient"
+	"github.com/giantswarm/apprclient/v2"
 	"github.com/giantswarm/backoff"
-	"github.com/giantswarm/helmclient"
-	"github.com/giantswarm/k8sclient"
+	"github.com/giantswarm/helmclient/v2/pkg/helmclient"
+	"github.com/giantswarm/k8sclient/v4/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/spf13/afero"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/e2etests/clusterstate/provider"
+	"github.com/giantswarm/e2etests/v2/clusterstate/provider"
 )
 
 type Config struct {
@@ -234,7 +234,7 @@ func (c *ClusterState) CheckTestAppIsInstalled(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app=e2e-app",
 		}
-		l, err := c.k8sClient.K8sClient().CoreV1().Pods(ChartNamespace).List(lo)
+		l, err := c.k8sClient.K8sClient().CoreV1().Pods(ChartNamespace).List(ctx, lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}

@@ -8,11 +8,11 @@ import (
 	"io"
 	"time"
 
-	"github.com/giantswarm/apiextensions/pkg/apis/core/v1alpha1"
-	"github.com/giantswarm/apprclient"
+	"github.com/giantswarm/apiextensions/v2/pkg/apis/core/v1alpha1"
+	"github.com/giantswarm/apprclient/v2"
 	"github.com/giantswarm/backoff"
-	"github.com/giantswarm/helmclient"
-	"github.com/giantswarm/k8sclient"
+	"github.com/giantswarm/helmclient/v2/pkg/helmclient"
+	"github.com/giantswarm/k8sclient/v4/pkg/k8sclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
@@ -223,7 +223,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("app=%s,cluster-operator.giantswarm.io/configmap-type=user", UserConfigMapName),
 		}
-		l, err := l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceDefault).List(lo)
+		l, err := l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceDefault).List(ctx, lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -260,7 +260,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 			return microerror.Mask(err)
 		}
 
-		_, err = l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceSystem).Patch(UserConfigMapName, types.StrategicMergePatchType, data)
+		_, err = l.tcClients.K8sClient().CoreV1().ConfigMaps(metav1.NamespaceSystem).Patch(ctx, UserConfigMapName, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -273,7 +273,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 	{
 		l.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("updating %#q chartconfig CR", CustomResourceName))
 
-		cr, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Get(CustomResourceName, metav1.GetOptions{})
+		cr, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Get(ctx, CustomResourceName, metav1.GetOptions{})
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -283,7 +283,7 @@ func (l *LoadTest) enableIngressControllerHPA(ctx context.Context) error {
 		annotations["test"] = "test"
 		cr.Annotations = annotations
 
-		_, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Update(cr)
+		_, err = l.tcClients.G8sClient().CoreV1alpha1().ChartConfigs(CustomResourceNamespace).Update(ctx, cr, metav1.UpdateOptions{})
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -373,7 +373,7 @@ func (l *LoadTest) waitForAPIUp(ctx context.Context) error {
 	l.logger.LogCtx(ctx, "level", "debug", "message", "waiting for k8s API to be up")
 
 	o := func() error {
-		_, err := l.tcClients.K8sClient().CoreV1().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
+		_, err := l.tcClients.K8sClient().CoreV1().Services(metav1.NamespaceDefault).Get(ctx, "kubernetes", metav1.GetOptions{})
 		if err != nil {
 			return microerror.Maskf(waitError, err.Error())
 		}
@@ -403,7 +403,7 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 		lo := metav1.ListOptions{
 			LabelSelector: "app.kubernetes.io/name=loadtest-app",
 		}
-		l, err := l.tcClients.K8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(lo)
+		l, err := l.tcClients.K8sClient().AppsV1().Deployments(metav1.NamespaceDefault).List(ctx, lo)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -437,7 +437,7 @@ func (l *LoadTest) waitForLoadTestApp(ctx context.Context) error {
 // waitForLoadTestJob waits for the job running the Stormforger CLI to
 // complete and then gets the pod logs which contains the results JSON. The CLI
 // is configured to wait for the load test to complete.
-func (l *LoadTest) waitForLoadTestJob(_ context.Context) ([]byte, error) {
+func (l *LoadTest) waitForLoadTestJob(ctx context.Context) ([]byte, error) {
 	var podCount = 1
 	var podName = ""
 
@@ -449,7 +449,7 @@ func (l *LoadTest) waitForLoadTestJob(_ context.Context) ([]byte, error) {
 				FieldSelector: "status.phase=Succeeded",
 				LabelSelector: "app.kubernetes.io/name=stormforger-cli",
 			}
-			l, err := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(lo)
+			l, err := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).List(ctx, lo)
 			if err != nil {
 				return microerror.Mask(err)
 			}
@@ -483,7 +483,7 @@ func (l *LoadTest) waitForLoadTestJob(_ context.Context) ([]byte, error) {
 
 		req := l.cpClients.K8sClient().CoreV1().Pods(metav1.NamespaceDefault).GetLogs(podName, &corev1.PodLogOptions{})
 
-		readCloser, err := req.Stream()
+		readCloser, err := req.Stream(ctx)
 		if err != nil {
 			return nil, err
 		}

@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/giantswarm/backoff"
-	"github.com/giantswarm/helmclient"
+	"github.com/giantswarm/helmclient/v2/pkg/helmclient"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/e2etests/basicapp/legacyresource"
+	"github.com/giantswarm/e2etests/v2/basicapp/legacyresource"
 )
 
 type Config struct {
@@ -111,7 +111,7 @@ func (b *BasicApp) Test(ctx context.Context) error {
 		for _, ds := range b.chartResources.DaemonSets {
 			b.logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("checking daemonset %#q", ds.Name))
 
-			err = b.checkDaemonSet(ds)
+			err = b.checkDaemonSet(ctx, ds)
 			if err != nil {
 				return microerror.Mask(err)
 			}
@@ -163,8 +163,8 @@ func (b *BasicApp) Test(ctx context.Context) error {
 }
 
 // checkDaemonSet ensures that key properties of the daemonset are correct.
-func (b *BasicApp) checkDaemonSet(expectedDaemonSet DaemonSet) error {
-	ds, err := b.clients.K8sClient().AppsV1().DaemonSets(expectedDaemonSet.Namespace).Get(expectedDaemonSet.Name, metav1.GetOptions{})
+func (b *BasicApp) checkDaemonSet(ctx context.Context, expectedDaemonSet DaemonSet) error {
+	ds, err := b.clients.K8sClient().AppsV1().DaemonSets(expectedDaemonSet.Namespace).Get(ctx, expectedDaemonSet.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "daemonset %#q", expectedDaemonSet.Name)
 	} else if err != nil {
@@ -211,7 +211,7 @@ func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deplo
 		return microerror.Mask(err)
 	}
 
-	ds, err := b.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
+	ds, err := b.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(ctx, expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "deployment: %#q", expectedDeployment.Name)
 	} else if err != nil {
@@ -238,8 +238,8 @@ func (b *BasicApp) checkDeployment(ctx context.Context, expectedDeployment Deplo
 
 // checkDeploymentReady checks for the specified deployment that the number of
 // ready replicas matches the desired state.
-func (b *BasicApp) checkDeploymentReady(_ context.Context, expectedDeployment Deployment) error {
-	deploy, err := b.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(expectedDeployment.Name, metav1.GetOptions{})
+func (b *BasicApp) checkDeploymentReady(ctx context.Context, expectedDeployment Deployment) error {
+	deploy, err := b.clients.K8sClient().AppsV1().Deployments(expectedDeployment.Namespace).Get(ctx, expectedDeployment.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notReadyError, "deployment %#q in %#q not found", expectedDeployment.Name, expectedDeployment.Namespace)
 	} else if err != nil {
@@ -264,9 +264,9 @@ func (b *BasicApp) checkLabels(labelType string, expectedLabels, labels map[stri
 }
 
 // checkService ensures that key properties of the service are correct.
-func (b *BasicApp) checkService(_ context.Context, expectedService Service) error {
+func (b *BasicApp) checkService(ctx context.Context, expectedService Service) error {
 
-	s, err := b.clients.K8sClient().CoreV1().Services(expectedService.Namespace).Get(expectedService.Name, metav1.GetOptions{})
+	s, err := b.clients.K8sClient().CoreV1().Services(expectedService.Namespace).Get(ctx, expectedService.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return microerror.Maskf(notFoundError, "service: %#q", expectedService.Name)
 	} else if err != nil {
